@@ -15,8 +15,8 @@ from threading import Lock
 # Create a Blueprint instead of a Flask app
 kafka_bp = Blueprint('kafka', __name__, url_prefix='/api/greenlake-eval/sensors')
 
-# suppress logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 # Thread-safe message store
