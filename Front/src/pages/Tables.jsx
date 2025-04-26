@@ -19,7 +19,7 @@ function Tables() {
   const navigate = useNavigate();
 
   // Mock categories for filtering
-  const categories = ['all', 'salud', 'educación', 'transporte', 'seguridad', 'economía'];
+  const categories = ['all', 'city', 'infrastructure', 'people', 'sensors', 'state', 'misc'];
 
   // Mock tables data - replace with actual API call
   useEffect(() => {
@@ -29,14 +29,33 @@ function Tables() {
         const data = await response.json();
         console.log(data);
         if (response.ok) {
-          const fetchedTables = data.results.map((item, index) => ({
-            id: index + 1,
-            name: item.table,
-            category: 'uncategorized', // Default category
-            description: item.description ? item.description : '-', // Use real description if available
-            columns: [], // Placeholder for columns (can fetch them later if needed)
-            columnCount: item.column_count, // Add column_count to the table object
-          }));
+          const fetchedTables = data.results.map((item, index) => {
+            // Determine category based on table name
+            const tableName = item.table.toLowerCase();
+            let assignedCategory = 'misc'; // Default to misc
+            
+            // Check if table name contains any category string (excluding 'all')
+            for (const category of categories) {
+              if (category !== 'all' && tableName.includes(category)) {
+                assignedCategory = category;
+                break; // Use the first matching category
+              }
+              
+            }
+            
+            if (tableName.includes("cit")) {
+              assignedCategory = "city";
+            }
+
+            return {
+              id: index + 1,
+              name: item.table,
+              category: assignedCategory,
+              description: item.description ? item.description : '-',
+              columns: [],
+              columnCount: item.column_count,
+            };
+          });
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
