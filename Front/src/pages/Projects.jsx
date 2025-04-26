@@ -72,6 +72,12 @@ function Projects() {
   };
 
   const handleOpenProject = (project) => {
+    // Navigate to the detailed Project canvas view instead of showing within this page
+    navigate(`/project/${project.id}`);
+  };
+
+  const handleViewProjectDetails = (project) => {
+    // Use this for viewing project details without the canvas
     setActiveProject(project);
   };
 
@@ -264,15 +270,27 @@ function Projects() {
             Crear Proyecto
           </button>
         ) : (
-          <button 
-            onClick={() => setShowCreateVisualization(true)}
-            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Crear Visualización
-          </button>
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => handleOpenProject(activeProject)}
+              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+              </svg>
+              Editar en Canvas
+            </button>
+            <button 
+              onClick={() => setShowCreateVisualization(true)}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Crear Visualización
+            </button>
+          </div>
         )}
       </div>
       
@@ -410,12 +428,20 @@ function Projects() {
                     <span className="text-sm text-gray-600">{project.visualizations.length} visualizaciones</span>
                   </div>
                   
-                  <button 
-                    onClick={() => handleOpenProject(project)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                  >
-                    Ver Proyecto
-                  </button>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => handleViewProjectDetails(project)}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm transition-colors"
+                    >
+                      Detalles
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                    >
+                      Editar
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

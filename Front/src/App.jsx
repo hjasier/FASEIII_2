@@ -5,7 +5,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
-import SensorDashboard from './pages/SensorDashboard';
+import Project from './pages/Project';
 
 function App() {
   return (
@@ -31,12 +31,12 @@ function App() {
           }
         />
 
-        <Route path="/sensor-chart"
+        {/* Ruta para un proyecto específico con su ID */}
+        <Route path="/project/:projectId" 
           element={
-            <SensorDashboard/>
-          }
+            <Project/>
+          } 
         />
-        
 
         {/* Ruta 404 */}
         <Route path='*' element={<h1 className='text-5xl text-white text-center mt-56'>404 Not Found :(</h1>} />
