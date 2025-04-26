@@ -20,6 +20,7 @@ def test1():
         }
     })
 
+
 @api_bp.route('/hospitals/nearby', methods=['GET'])
 def hospitals_nearby():
     # 1) Leer y validar parámetros
@@ -51,7 +52,6 @@ def hospitals_nearby():
             FROM infrastructure AS i
             JOIN infrastructure_hospital AS h
             ON h.infra_id = i.id
-            WHERE i.type = 'hospital'
             AND ST_DWithin(
                     i.location::geography,
                     ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
@@ -93,31 +93,89 @@ def hospitals_nearby():
         },
         "results": results
     })
-
+        
 @api_bp.route('/events/nearby', methods=['GET'])
 def events_nearby():
-    # Parámetros requeridos
+    # 1) Parámetros requeridos
     city_id   = request.args.get('city_id')
     start_str = request.args.get('start_date')
     end_str   = request.args.get('end_date')
-    
+    if not city_id or not start_str or not end_str:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "message": "Se requieren los parámetros city_id, start_date y end_date"
+            }
+        }), 400
+
+    # 2) Parseo de fechas (ISO 8601 o YYYY-MM-DD)
+    try:
+        def parse_date(s: str) -> datetime:
+            try:
+                # acepta "YYYY-MM-DD" y "YYYY-MM-DDTHH:MM:SS"
+                return datetime.fromisoformat(s)
+            except ValueError:
+                # acepta día/mes de uno o dos dígitos: "YYYY-M-D"
+                return datetime.strptime(s, "%Y-%m-%d")
+
+        try:
+            start_dt = parse_date(start_str)
+            end_dt   = parse_date(end_str)
+        except ValueError:
+            return jsonify({
+                "metadata": {
+                    "status": "error",
+                    "message": (
+                        "Formato de fecha inválido. "
+                        "Use ISO 8601 (por ej. 2025-01-08, 2025-1-8 o 2025-01-08T16:37:21)"
+                    )
+                }
+            }), 400
+    except ValueError:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "message": "Formato de fecha inválido. Use ISO 8601 (por ej. 2025-01-08 o 2025-01-08T16:37:21)"
+            }
+        }), 400
+
+    # 3) Consulta a la base de datos
+    sql = """
+        SELECT event_id, city_id, name, description, start_date, end_date, venue_id
+        FROM events
+        WHERE city_id = %s
+          AND start_date >= %s
+          AND end_date   <= %s
+        ORDER BY start_date;
+    """
+    cur.execute(sql, (city_id, start_dt, end_dt))
+    rows = cur.fetchall()
+
+    # 4) Construcción del JSON de resultados
+    results = []
+    for event_id, city_id_, name, description, start_dt, end_dt, venue_id in rows:
+        # formateo RFC-1123
+        fmt = "%a, %d %b %Y %H:%M:%S GMT"
+        results.append({
+            "event_id":    str(event_id),
+            "city_id":     str(city_id_),
+            "name":        name,
+            "description": description,
+            "start_date":  start_dt.strftime(fmt),
+            "end_date":    end_dt.strftime(fmt),
+            "venue_id":    str(venue_id)
+        })
+
+    # 5) Timestamp de la respuesta
+    resp_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
     return jsonify({
         "metadata": {
-            "status": "success",
-            "timestamp": "YYYY-MM-DDTHH:MM:SSZ"
+            "status":    "success",
+            "timestamp": resp_ts
         },
-        "results": [
-            {
-                "city_id": "3aedcf9c-e38d-4377-bade-6e27dd7c9b22",
-                "description": "Join us for an unforgettable night of Punk music with Crystal Farrell",
-                "end_date": "Sat, 11 Jan 2025 16:37:21 GMT",
-                "event_id": "2d9c9a38-8cb9-4226-813c-9be3ce1c66d3",
-                "name": "Kylie Black Concert",
-                "start_date": "Wed, 08 Jan 2025 16:37:21 GMT",
-                "venue_id": "d9075054-085b-4c89-ad7b-19e95b5b5cd1"
-            }
-        ]
-        })
+        "results": results
+    })
     
 @api_bp.route('/sensors/<operation>', methods=['GET'])
 def sensors_data(operation):
