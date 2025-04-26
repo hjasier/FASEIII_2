@@ -16,7 +16,7 @@ from threading import Lock
 kafka_bp = Blueprint('kafka', __name__, url_prefix='/kafka')
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 # Thread-safe message store

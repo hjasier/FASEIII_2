@@ -19,21 +19,33 @@ function Tables() {
 
   // Mock tables data - replace with actual API call
   useEffect(() => {
-    // Simulating API fetch
-    setTimeout(() => {
-      const mockTables = [
-        { id: 1, name: 'Hospitales', category: 'salud', description: 'Información sobre los hospitales de la ciudad', columns: ['id', 'nombre', 'dirección', 'capacidad', 'especialidad'] },
-        { id: 2, name: 'Escuelas', category: 'educación', description: 'Lista de centros educativos públicos y privados', columns: ['id', 'nombre', 'tipo', 'nivel', 'dirección'] },
-        { id: 3, name: 'Transporte Público', category: 'transporte', description: 'Rutas y horarios de transporte público', columns: ['id_ruta', 'nombre', 'inicio', 'fin', 'frecuencia'] },
-        { id: 4, name: 'Emergencias Médicas', category: 'salud', description: 'Registro de emergencias médicas atendidas', columns: ['id', 'hospital_id', 'fecha', 'tipo', 'gravedad'] },
-        { id: 5, name: 'Delitos', category: 'seguridad', description: 'Registro de delitos reportados', columns: ['id', 'tipo', 'fecha', 'ubicación', 'estado'] },
-        { id: 6, name: 'Comercios', category: 'economía', description: 'Directorio de comercios y negocios', columns: ['id', 'nombre', 'categoría', 'dirección', 'empleados'] },
-      ];
-      setTables(mockTables);
-      setFilteredTables(mockTables);
-      setIsLoading(false);
-    }, 800);
+    const fetchTables = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5454/tables');
+        const data = await response.json();
+        if (response.ok) {
+          const fetchedTables = data.results.map((item, index) => ({
+            id: index + 1,
+            name: item.table,
+            category: 'uncategorized', // Default category
+            description: `Tabla en el esquema ${item.schema}`, // Optional description
+            columns: [] // You can fetch real columns later if needed
+          }));
+          setTables(fetchedTables);
+          setFilteredTables(fetchedTables);
+        } else {
+          console.error('Error fetching tables:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching tables:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchTables();
   }, []);
+  
 
   // Filter tables based on search query and category
   useEffect(() => {
