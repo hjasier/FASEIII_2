@@ -17,15 +17,20 @@ database_bp = Blueprint('database', __name__)
 def list_tables():
     """
     GET /api/greenlake-eval/tables
-    Devuelve todas las tablas (BASE TABLES) del esquema público y otros esquemas de usuario.
+    Devuelve todas las tablas (BASE TABLES) del esquema público y otros esquemas de usuario,
+    incluyendo su descripción si existe.
     """
     try:
-        # Excluimos los esquemas del sistema
         cur.execute("""
-            SELECT table_schema, table_name
-              FROM information_schema.tables
-             WHERE table_type = 'BASE TABLE' AND table_schema = 'public'
-             ORDER BY table_schema, table_name;
+            SELECT
+                nspname AS schema,
+                relname AS table,
+                obj_description(pg_class.oid) AS description
+            FROM pg_class
+            JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+            WHERE relkind = 'r' -- Only ordinary tables
+              AND nspname = 'public' -- Replace 'public' if needed
+            ORDER BY nspname, relname;
         """)
         rows = cur.fetchall()
     except Exception as e:
@@ -39,13 +44,13 @@ def list_tables():
 
     # Formateamos cada fila en un dict
     tables = [
-        {"schema": schema, "table": table}
-        for schema, table in rows
+        {"schema": schema, "table": table, "description": description}
+        for schema, table, description in rows
     ]
 
     return jsonify({
         "metadata": {
-            "status":    "success",
+            "status": "success",
             "timestamp": datetime.now().isoformat() + "Z"
         },
         "results": tables
