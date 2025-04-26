@@ -328,7 +328,42 @@ def aggregate_sensor_data(operation):
         return jsonify({'error': f'No data found for city_id={city_id}, sensor_type={sensor_type}, date={date_str}'}), 404
     
     # Calculate metrics based on sensor type
-    metrics = {}
+    metrics_list = []
+    
+    # Define units for each metric type
+    metric_units = {
+        'air': {
+            'pm10': 'µg/m³',
+            'co': 'ppm',
+            'co2': 'ppm',
+            'no2': 'ppb',
+            'o3': 'ppb',
+            'so2': 'ppb'
+        },
+        'ambient': {
+            'humidity': '%',
+            'temperature': '°C',
+            'solar_radiation': 'W/m²'
+        },
+        'traffic': {
+            'avg_speed': 'km/h',
+            'flow_rate': 'vehicles/hour',
+            'occupancy': '%',
+            'vehicle_density': 'vehicles/km',
+            'congestion_index': 'index'
+        },
+        'water_quality': {
+            'ph_level': 'pH',
+            'turbidity': 'NTU',
+            'conductivity': 'µS/cm',
+            'dissolved_oxygen': 'mg/L',
+            'water_temperature': '°C'
+        },
+        'water_usage': {
+            'usage_liters': 'L',
+            'total_daily_usage': 'L'
+        }
+    }
     
     if sensor_type == 'air':
         # List of air metrics to aggregate
@@ -340,11 +375,17 @@ def aggregate_sensor_data(operation):
             
             if values:
                 if operation == 'average':
-                    metrics[metric] = sum(values) / len(values)
+                    value = sum(values) / len(values)
                 elif operation == 'min':
-                    metrics[metric] = min(values)
+                    value = min(values)
                 elif operation == 'max':
-                    metrics[metric] = max(values)
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['air'].get(metric, ''),
+                    'value': round(value, 2)
+                })
     
     elif sensor_type == 'ambient':
         # List of ambient metrics to aggregate
@@ -356,11 +397,17 @@ def aggregate_sensor_data(operation):
             
             if values:
                 if operation == 'average':
-                    metrics[metric] = sum(values) / len(values)
+                    value = sum(values) / len(values)
                 elif operation == 'min':
-                    metrics[metric] = min(values)
+                    value = min(values)
                 elif operation == 'max':
-                    metrics[metric] = max(values)
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['ambient'].get(metric, ''),
+                    'value': round(value, 2)
+                })
     
     elif sensor_type == 'traffic':
         # List of traffic metrics to aggregate
@@ -372,20 +419,80 @@ def aggregate_sensor_data(operation):
             
             if values:
                 if operation == 'average':
-                    metrics[metric] = sum(values) / len(values)
+                    value = sum(values) / len(values)
                 elif operation == 'min':
-                    metrics[metric] = min(values)
+                    value = min(values)
                 elif operation == 'max':
-                    metrics[metric] = max(values)
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['traffic'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'water_quality':
+        # List of water quality metrics to aggregate
+        water_quality_metrics = ['ph_level', 'turbidity', 'conductivity', 'dissolved_oxygen', 'water_temperature']
+        
+        for metric in water_quality_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['water_quality'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'water_usage':
+        # List of water usage metrics to aggregate
+        water_usage_metrics = ['usage_liters']
+        
+        for metric in water_usage_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['water_usage'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+                
+                # Add daily total for water usage
+                if metric == 'usage_liters':
+                    metrics_list.append({
+                        'metric': 'total_daily_usage',
+                        'unit': metric_units['water_usage'].get('total_daily_usage', ''),
+                        'value': round(sum(values), 2)
+                    })
+    
+    # Get current timestamp in ISO format
+    current_timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
     # Prepare the response
     response = {
-        'city_id': city_id,
-        'sensor_type': sensor_type,
-        'date': date_str,
-        'operation': operation,
-        'metrics': metrics,
-        'sample_size': len(filtered_messages)
+        'metadata': {
+            'status': 'success',
+            'timestamp': current_timestamp
+        },
+        'results': metrics_list
     }
     
     return jsonify(response)
