@@ -8,6 +8,6 @@ conn = psycopg2.connect(
     port="6565"
 )
 cur = conn.cursor()
-cur.execute("SELECT now();")
-print(cur.fetchone())
-conn.close()
+#cur.execute("SELECT now();")
+#print(cur.fetchone())
+#conn.close()
