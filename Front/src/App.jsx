@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
 import Project from './pages/Project';
+import SensorDashboard from './pages/SensorDashboard';
 import Realtime from './pages/Realtime';
 
 function App() {
@@ -38,6 +39,13 @@ function App() {
             <Project/>
           } 
         />
+
+        <Route path="/sensor-chart"
+          element={
+            <SensorDashboard/>
+          }
+        />
+
 
         <Route path="/realtime" 
           element={
