@@ -11,7 +11,9 @@ function Tables() {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [showCreateProject, setShowCreateProject] = useState(false);
-  
+  const [exportType, setExportType] = useState("csv");
+  const [showOptions, setShowOptions] = useState(false);
+
   const navigate = useNavigate();
 
   // Mock categories for filtering
@@ -98,6 +100,56 @@ function Tables() {
 
   const handleBack = () => {
     navigate('/');
+  };
+
+
+  const handleExport = async (type) => {
+    if (selectedTables.length === 0) return;
+  
+    // adjust the -1 if your selectedTables are 1-based; remove -1 if they're 0-based
+    const selectedNames = selectedTables.map(i => tables[i - 1].name);
+    console.log(`Tables to download as ${type}:`, selectedNames);
+  
+    try {
+      const res = await fetch("http://127.0.0.1:5454/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          tables: selectedNames,
+          type: type
+        }),
+      });
+  
+      if (!res.ok) {
+        // try to pull the JSON error message
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Error al exportar tablas");
+      }
+  
+      const blob = await res.blob();
+      // figure out the filename from Content-Disposition, or fallback:
+      let filename = `export_tables.${type}.zip`;
+      const cd = res.headers.get("content-disposition");
+      if (cd) {
+        const m = cd.match(/filename\*?=['"]?(?:UTF-8'')?(.+?)['"]?(;|$)/);
+        if (m) filename = decodeURIComponent(m[1]);
+      }
+  
+      // download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
   };
   
   // Generate category color classes based on category name
@@ -446,19 +498,81 @@ function Tables() {
 
       {/* Download the selected tables */}
       <div className="flex container justify-center mx-auto px-4 py-4 text-right">
-        <button
-            onClick={() => console.log("Tablas seleccionadas:", selectedTables)}
+        {/* Export options dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (selectedTables.length === 0) return;
+              setShowOptions(!showOptions);
+            }}
             disabled={selectedTables.length === 0}
             className={`flex items-center ${
               selectedTables.length > 0 
                 ? 'bg-[#36C78D] hover:bg-[#2da677]' 
                 : 'bg-gray-300 cursor-not-allowed'
             } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
-        >
-          Descargar tablas
-        </button>
+          >
+            Descargar tablas
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {/* Options popup */}
+          {showOptions && selectedTables.length > 0 && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+              <ul className="py-1">
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("csv");
+                    setShowOptions(false);
+                    await handleExport("csv");
+                  }}
+                >
+                  <span className="mr-2">CSV</span>
+                  {exportType === "csv" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("json");
+                    setShowOptions(false);
+                    await handleExport("json");
+                  }}
+                >
+                  <span className="mr-2">JSON</span>
+                  {exportType === "json" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("xlsx");
+                    setShowOptions(false);
+                    await handleExport("xlsx");
+                  }}
+                >
+                  <span className="mr-2">Excel (XLSX)</span>
+                  {exportType === "xlsx" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-      
+
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
