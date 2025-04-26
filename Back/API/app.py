@@ -12,7 +12,7 @@ from blueprints.llm_callback import llm_bp
 from flask_cors import CORS
 
 app = Flask(__name__)  # crea la aplicación
-CORS(app)  # habilita CORS para la aplicación
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.route('/')
 def index():

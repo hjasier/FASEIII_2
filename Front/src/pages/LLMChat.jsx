@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function LLMChat() {
   const [conversations, setConversations] = useState([]);
@@ -9,6 +9,7 @@ function LLMChat() {
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Mock conversation history
   useEffect(() => {
@@ -21,32 +22,101 @@ function LLMChat() {
     setConversations(mockConversations);
   }, []);
 
-  // Set initial conversation
+  // Handle initial query from home page
+  useEffect(() => {
+    const initialQuery = location.state?.query;
+    
+    if (initialQuery) {
+      // Create a new conversation with the initial query
+      const newConversation = {
+        id: Date.now(),
+        title: initialQuery.length > 20 ? initialQuery.substring(0, 20) + '...' : initialQuery,
+        date: new Date().toISOString().split('T')[0],
+        preview: initialQuery
+      };
+      
+      setConversations(prevConversations => [newConversation, ...prevConversations]);
+      setActiveConversation(newConversation);
+      
+      // Create user message
+      const userMessage = {
+        id: 1,
+        role: 'user',
+        content: initialQuery
+      };
+      
+      setMessages([userMessage]);
+      
+      // Make API call with initial query
+      fetchAnswerFromAPI(initialQuery);
+    }
+  }, [location.state]);
+
+  // Set initial conversation if none active
   useEffect(() => {
     if (conversations.length > 0 && !activeConversation) {
       handleSelectConversation(conversations[0]);
     }
   }, [conversations, activeConversation]);
 
+  // API call to get answer
+  const fetchAnswerFromAPI = async (question) => {
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('http://127.0.0.1:5454/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ question })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error en la respuesta de la API');
+      }
+      
+      const data = await response.json();
+      
+      // Create assistant message with API response
+      const assistantMessage = {
+        id: messages.length + 1,
+        role: 'assistant',
+        content: data.message || '',
+        graph: data.graph_base64 || null,
+        db_data: data.db_data || null,
+        sql: data.sql_generated || null
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error fetching from API:', error);
+      
+      // Show error message
+      const errorMessage = {
+        id: messages.length + 1,
+        role: 'assistant',
+        content: 'Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo más tarde.'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle conversation selection
   const handleSelectConversation = (conversation) => {
     setActiveConversation(conversation);
     
-    // In production, fetch messages for this conversation
-    const mockMessages = [
-      { id: 1, role: 'user', content: conversation.preview },
-      { id: 2, role: 'assistant', content: 'Analizando los datos de GreenLake, puedo indicar que las zonas con mejor calidad del aire son los distritos Norte y Este, especialmente cerca de los parques urbanos principales. Los sensores registran niveles de PM2.5 por debajo de 10μg/m³ en estas áreas, lo que es considerado excelente según estándares internacionales.' }
-    ];
+    // Reset messages when selecting a conversation
+    // In a real app, you would fetch the messages from an API
+    setMessages([
+      { id: 1, role: 'user', content: conversation.preview }
+    ]);
     
-    if (conversation.id === 2) {
-      mockMessages[0].content = conversation.preview;
-      mockMessages[1].content = 'Según los datos de tránsito de GreenLake, las rutas con mayor demanda son la Línea Verde (conectando el centro con el distrito universitario) y la Línea Azul (que une las zonas residenciales del norte con el distrito comercial). Estas rutas muestran un promedio de ocupación del 85% en horarios pico.';
-    } else if (conversation.id === 3) {
-      mockMessages[0].content = conversation.preview;
-      mockMessages[1].content = 'Los datos educativos de GreenLake muestran que la Escuela Marina González, el Instituto Tecnológico Norte y el Colegio Bilingüe del Este tienen los mejores indicadores de rendimiento académico, con tasas de graduación superiores al 95% y calificaciones promedio por encima de 8.5/10.';
-    }
-    
-    setMessages(mockMessages);
+    // Fetch the answer for this conversation
+    fetchAnswerFromAPI(conversation.preview);
   };
 
   // Handle new conversation
@@ -91,45 +161,65 @@ function LLMChat() {
       ));
     }
 
-    // Simulate API response
-    setIsLoading(true);
-    
-    // Wait for 1-2 seconds to simulate API call
-    setTimeout(() => {
-      const newAssistantMessage = {
-        id: messages.length + 2,
-        role: 'assistant',
-        content: getAssistantResponse(inputText)
-      };
-      
-      setMessages(prev => [...prev, newAssistantMessage]);
-      setIsLoading(false);
-    }, 1500);
-  };
-  
-  // Simple response generation based on keywords
-  const getAssistantResponse = (query) => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('calidad del aire') || lowerQuery.includes('contaminación')) {
-      return 'Los datos de calidad del aire de GreenLake muestran variaciones significativas entre distritos. Las zonas residenciales del norte tienen los mejores índices con un AQI promedio de 35, mientras que el distrito industrial sur registra valores de hasta 95 en horarios de alta actividad. Los proyectos de reforestación urbana han mejorado la calidad en un 15% en los últimos dos años.';
-    } 
-    else if (lowerQuery.includes('transporte') || lowerQuery.includes('tráfico')) {
-      return 'El sistema de transporte de GreenLake incluye 8 líneas principales de autobús eléctrico con un total de 143 unidades que sirven al 85% de la población urbana. Los datos de tráfico indican que las horas pico (7:30-9:00 am y 17:30-19:00 pm) presentan la mayor congestión, especialmente en los accesos al distrito financiero. La iniciativa de carriles exclusivos ha reducido los tiempos de viaje en un 23% en rutas críticas.';
-    }
-    else if (lowerQuery.includes('energía') || lowerQuery.includes('consumo')) {
-      return 'GreenLake ha implementado un sistema de monitoreo energético que cubre el 92% de edificios públicos. Los datos indican un consumo promedio de 145 kWh/m² anual, con una reducción del 17% respecto al año anterior gracias a la implementación de tecnologías eficientes. El 65% de la energía proviene de fuentes renovables, principalmente solar (38%) y eólica (27%).';
-    }
-    else if (lowerQuery.includes('agua') || lowerQuery.includes('consumo de agua')) {
-      return 'El consumo de agua en GreenLake tiene un promedio de 120 litros diarios per cápita, por debajo de la media nacional. Los sistemas de captación de agua pluvial instalados en edificios públicos han recuperado más de 12 millones de litros en el último año. La calidad del agua potable cumple con el 99.7% de los estándares internacionales según análisis recientes.';
-    }
-    else {
-      return 'Basado en los datos disponibles de GreenLake, puedo proporcionarle información detallada sobre calidad del aire, consumo energético, gestión del agua, transporte público, y otros aspectos ambientales o urbanos. ¿Hay algún área específica sobre la que le gustaría conocer más detalles o tendencias?';
-    }
+    // Make API call with the question
+    fetchAnswerFromAPI(inputText);
   };
 
   const handleBack = () => {
     navigate('/');
+  };
+
+  // Helper function to render message content
+  const renderMessageContent = (message) => {
+    if (message.role === 'user') {
+      return <p className="text-sm whitespace-pre-wrap">{message.content}</p>;
+    }
+    
+    return (
+      <div className="space-y-3">
+        {/* Text content */}
+        {message.content && (
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        )}
+        
+        {/* Base64 image if available */}
+        {message.graph && (
+          <div className="mt-3">
+            <img 
+              src={`data:image/png;base64,${message.graph}`} 
+              alt="Graph visualization" 
+              className="max-w-full rounded-lg border border-gray-200"
+            />
+          </div>
+        )}
+        
+        {/* Show SQL query if available */}
+        {message.sql && (
+          <div className="mt-2 p-2 bg-gray-800 text-gray-100 rounded overflow-x-auto text-xs">
+            <pre>{message.sql}</pre>
+          </div>
+        )}
+        
+        {/* Show data table if available */}
+        {message.db_data && message.db_data.length > 0 && (
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded">
+              <tbody className="bg-white divide-y divide-gray-200">
+                {message.db_data.map((row, rowIndex) => (
+                  <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="px-3 py-2 text-sm text-gray-700">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -243,7 +333,7 @@ function LLMChat() {
                           : 'bg-gray-100 text-gray-800 rounded-bl-none'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      {renderMessageContent(message)}
                     </div>
                   </div>
                 ))}

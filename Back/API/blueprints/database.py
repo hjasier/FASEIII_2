@@ -8,6 +8,8 @@ import re
 import io
 import csv
 import zipfile
+import json
+import openpyxl
 from flask import request, jsonify, send_file
 from psycopg2 import sql, DatabaseError
 
@@ -18,18 +20,20 @@ def list_tables():
     """
     GET /api/greenlake-eval/tables
     Devuelve todas las tablas (BASE TABLES) del esquema público y otros esquemas de usuario,
-    incluyendo su descripción si existe.
+    incluyendo su descripción si existe, y el conteo de columnas.
     """
     try:
+        # Query to get table names, descriptions, and column counts
         cur.execute("""
             SELECT
                 nspname AS schema,
                 relname AS table,
-                obj_description(pg_class.oid) AS description
+                obj_description(pg_class.oid) AS description,
+                (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = relname) AS column_count
             FROM pg_class
             JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
             WHERE relkind = 'r' -- Only ordinary tables
-              AND nspname = 'public' -- Replace 'public' if needed
+              AND nspname = 'public' -- Only public schema
             ORDER BY nspname, relname;
         """)
         rows = cur.fetchall()
@@ -42,10 +46,10 @@ def list_tables():
             "error": f"Error al consultar la base de datos: {e}"
         }), 500
 
-    # Formateamos cada fila en un dict
+    # Format each row into a dictionary
     tables = [
-        {"schema": schema, "table": table, "description": description}
-        for schema, table, description in rows
+        {"schema": schema, "table": table, "description": description, "column_count": column_count}
+        for schema, table, description, column_count in rows
     ]
 
     return jsonify({
@@ -109,14 +113,22 @@ def export_tables():
             "status": "error",
             "message": "Debe enviar un JSON con la clave 'tables'."
         }), 400
-
+    
     tables = payload['tables']
+    export_type = payload.get('type', 'csv')  # Default to CSV if not specified
+    
+    if export_type not in ['csv', 'json', 'xlsx']:
+        return jsonify({
+            "status": "error",
+            "message": "El tipo de exportación debe ser 'csv', 'json' o 'xlsx'."
+        }), 400
+    
     if not isinstance(tables, list) or not all(isinstance(t, str) for t in tables):
         return jsonify({
             "status": "error",
             "message": "La clave 'tables' debe ser una lista de strings."
         }), 400
-
+    
     # 2) Validar nombres de tabla (evitar inyección)
     valid_name = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
     for tbl in tables:
@@ -125,53 +137,126 @@ def export_tables():
                 "status": "error",
                 "message": f"Nombre de tabla inválido: '{tbl}'."
             }), 400
-
+    
     # 3) Recolectar datos de cada tabla
-    table_csvs = {}
+    table_data = {}
     try:
         for tbl in tables:
             # Construir consulta segura
             query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(tbl))
             cur.execute(query)
-
             cols = [col.name for col in cur.description]
             rows = cur.fetchall()
-
-            # Generar CSV en memoria
-            sio = io.StringIO()
-            writer = csv.writer(sio)
-            writer.writerow(cols)
-            writer.writerows(rows)
-            table_csvs[tbl] = sio.getvalue()
+            
+            # Almacenar datos en formato adecuado según el tipo de exportación
+            if export_type == 'csv':
+                sio = io.StringIO()
+                writer = csv.writer(sio)
+                writer.writerow(cols)
+                writer.writerows(rows)
+                table_data[tbl] = sio.getvalue()
+            
+            elif export_type == 'json':
+                # Convertir filas a lista de diccionarios para JSON
+                json_rows = []
+                for row in rows:
+                    json_rows.append(dict(zip(cols, row)))
+                table_data[tbl] = json.dumps(json_rows, default=str)
+            
+            elif export_type == 'xlsx':
+                # Para XLSX guardamos los encabezados y filas para procesarlos después
+                table_data[tbl] = {'headers': cols, 'rows': rows}
+    
     except DatabaseError as e:
         msg = str(e).split('\n')[0]
         return jsonify({
             "status": "error",
             "message": f"Error al exportar tabla '{tbl}': {msg}"
         }), 400
-
-    # 4) Si solo hay una tabla, enviar CSV directamente
-    if len(table_csvs) == 1:
-        tbl, content = next(iter(table_csvs.items()))
-        mem = io.BytesIO(content.encode('utf-8'))
-        mem.seek(0)
-        return send_file(
-            mem,
-            as_attachment=True,
-            download_name=f"{tbl}.csv",
-            mimetype="text/csv"
-        )
-
-    # 5) Si hay varias, empaquetar en ZIP
+    
+    # 4) Si solo hay una tabla, enviar archivo directamente
+    if len(table_data) == 1:
+        tbl, content = next(iter(table_data.items()))
+        
+        if export_type == 'csv':
+            mem = io.BytesIO(content.encode('utf-8'))
+            mem.seek(0)
+            return send_file(
+                mem,
+                as_attachment=True,
+                download_name=f"{tbl}.csv",
+                mimetype="text/csv"
+            )
+        
+        elif export_type == 'json':
+            mem = io.BytesIO(content.encode('utf-8'))
+            mem.seek(0)
+            return send_file(
+                mem,
+                as_attachment=True,
+                download_name=f"{tbl}.json",
+                mimetype="application/json"
+            )
+        
+        elif export_type == 'xlsx':
+            # Crear archivo Excel en memoria
+            xlsx_io = io.BytesIO()
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = tbl
+            
+            # Escribir encabezados
+            for col_idx, header in enumerate(content['headers'], 1):
+                ws.cell(row=1, column=col_idx, value=header)
+            
+            # Escribir datos
+            for row_idx, row in enumerate(content['rows'], 2):
+                for col_idx, cell_value in enumerate(row, 1):
+                    ws.cell(row=row_idx, column=col_idx, value=cell_value)
+            
+            wb.save(xlsx_io)
+            xlsx_io.seek(0)
+            
+            return send_file(
+                xlsx_io,
+                as_attachment=True,
+                download_name=f"{tbl}.xlsx",
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    
+    # 5) Si hay varias tablas, empaquetar en ZIP
     mem_zip = io.BytesIO()
     with zipfile.ZipFile(mem_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for tbl, content in table_csvs.items():
-            zf.writestr(f"{tbl}.csv", content)
+        for tbl, content in table_data.items():
+            if export_type == 'csv':
+                zf.writestr(f"{tbl}.csv", content)
+            
+            elif export_type == 'json':
+                zf.writestr(f"{tbl}.json", content)
+            
+            elif export_type == 'xlsx':
+                # Crear archivo Excel en memoria para cada tabla
+                xlsx_io = io.BytesIO()
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = tbl
+                
+                # Escribir encabezados
+                for col_idx, header in enumerate(content['headers'], 1):
+                    ws.cell(row=1, column=col_idx, value=header)
+                
+                # Escribir datos
+                for row_idx, row in enumerate(content['rows'], 2):
+                    for col_idx, cell_value in enumerate(row, 1):
+                        ws.cell(row=row_idx, column=col_idx, value=cell_value)
+                
+                wb.save(xlsx_io)
+                zf.writestr(f"{tbl}.xlsx", xlsx_io.getvalue())
+    
     mem_zip.seek(0)
-
     return send_file(
         mem_zip,
         as_attachment=True,
-        download_name="export_tables.zip",
+        download_name=f"export_tables.{export_type}.zip",
         mimetype="application/zip"
     )

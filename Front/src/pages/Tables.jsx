@@ -11,75 +11,30 @@ function Tables() {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [showCreateProject, setShowCreateProject] = useState(false);
-  
+  const [exportType, setExportType] = useState("csv");
+  const [showOptions, setShowOptions] = useState(false);
+
   const navigate = useNavigate();
 
   // Mock categories for filtering
   const categories = ['all', 'salud', 'educación', 'transporte', 'seguridad', 'economía'];
 
   // Mock tables data - replace with actual API call
-  // useEffect(() => {
-  //   const fetchTables = async () => {
-  //     try {
-  //       const response = await fetch('http://127.0.0.1:5454/tables');
-  //       const data = await response.json();
-  //       if (response.ok) {
-  //         const fetchedTables = data.results.map((item, index) => ({
-  //           id: index + 1,
-  //           name: item.table,
-  //           category: 'uncategorized', // Default category
-  //           description: item.description ? item.description : `-`, // Use real description if available
-  //           columns: [] // Placeholder for columns (can fetch them later if needed)
-  //         }));
-  //         setTables(fetchedTables);
-  //         setFilteredTables(fetchedTables);
-  //       } else {
-  //         console.error('Error fetching tables:', data.error);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching tables:', error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  
-  //   fetchTables();
-  // }, []);
-
   useEffect(() => {
     const fetchTables = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5454/tables');
-        console.log(response)
         const data = await response.json();
+        console.log(data);
         if (response.ok) {
-          const fetchedTables = await Promise.all(
-            data.results.map(async (item, index) => {
-              let columns = [];
-              let columnCount = 0;
-              try {
-                const columnsResponse = await fetch(`http://127.0.0.1:5454/columns/${item.table}`);
-                const columnsData = await columnsResponse.json();
-                if (columnsResponse.ok) {
-                  columns = columnsData.results.map(col => col.column_name);
-                  columnCount = columnsData.results.length; // ✅ Correct way to count columns
-                } else {
-                  console.error(`Error fetching columns for table ${item.table}:`, columnsData.error);
-                }
-              } catch (err) {
-                console.error(`Error fetching columns for table ${item.table}:`, err);
-              }
-  
-              return {
-                id: index + 1,
-                name: item.table,
-                category: 'uncategorized',
-                description: item.description ? item.description : '-',
-                columns: columns,
-                columnCount: columnCount // ✅ Now this will be the real count
-              };
-            })
-          );
+          const fetchedTables = data.results.map((item, index) => ({
+            id: index + 1,
+            name: item.table,
+            category: 'uncategorized', // Default category
+            description: item.description ? item.description : '-', // Use real description if available
+            columns: [], // Placeholder for columns (can fetch them later if needed)
+            columnCount: item.column_count, // Add column_count to the table object
+          }));
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
@@ -93,7 +48,7 @@ function Tables() {
     };
   
     fetchTables();
-  }, []);  
+  }, []);
 
   // Filter tables based on search query and category
   useEffect(() => {
@@ -145,6 +100,56 @@ function Tables() {
 
   const handleBack = () => {
     navigate('/');
+  };
+
+
+  const handleExport = async (type) => {
+    if (selectedTables.length === 0) return;
+  
+    // adjust the -1 if your selectedTables are 1-based; remove -1 if they're 0-based
+    const selectedNames = selectedTables.map(i => tables[i - 1].name);
+    console.log(`Tables to download as ${type}:`, selectedNames);
+  
+    try {
+      const res = await fetch("http://127.0.0.1:5454/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          tables: selectedNames,
+          type: type
+        }),
+      });
+  
+      if (!res.ok) {
+        // try to pull the JSON error message
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Error al exportar tablas");
+      }
+  
+      const blob = await res.blob();
+      // figure out the filename from Content-Disposition, or fallback:
+      let filename = `export_tables.${type}.zip`;
+      const cd = res.headers.get("content-disposition");
+      if (cd) {
+        const m = cd.match(/filename\*?=['"]?(?:UTF-8'')?(.+?)['"]?(;|$)/);
+        if (m) filename = decodeURIComponent(m[1]);
+      }
+  
+      // download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
   };
   
   // Generate category color classes based on category name
@@ -367,7 +372,7 @@ function Tables() {
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-500">
                           <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                            {table.columns.length} columnas
+                            {table.columnCount} columnas
                           </span>
                         </div>
                       </td>
@@ -493,19 +498,81 @@ function Tables() {
 
       {/* Download the selected tables */}
       <div className="flex container justify-center mx-auto px-4 py-4 text-right">
-        <button
-            onClick={() => console.log("Tablas seleccionadas:", selectedTables)}
+        {/* Export options dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (selectedTables.length === 0) return;
+              setShowOptions(!showOptions);
+            }}
             disabled={selectedTables.length === 0}
             className={`flex items-center ${
               selectedTables.length > 0 
                 ? 'bg-[#36C78D] hover:bg-[#2da677]' 
                 : 'bg-gray-300 cursor-not-allowed'
             } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
-        >
-          Descargar tablas
-        </button>
+          >
+            Descargar tablas
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {/* Options popup */}
+          {showOptions && selectedTables.length > 0 && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+              <ul className="py-1">
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("csv");
+                    setShowOptions(false);
+                    await handleExport("csv");
+                  }}
+                >
+                  <span className="mr-2">CSV</span>
+                  {exportType === "csv" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("json");
+                    setShowOptions(false);
+                    await handleExport("json");
+                  }}
+                >
+                  <span className="mr-2">JSON</span>
+                  {exportType === "json" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("xlsx");
+                    setShowOptions(false);
+                    await handleExport("xlsx");
+                  }}
+                >
+                  <span className="mr-2">Excel (XLSX)</span>
+                  {exportType === "xlsx" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-      
+
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
