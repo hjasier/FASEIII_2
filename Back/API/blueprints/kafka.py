@@ -131,7 +131,7 @@ def consume_kafka_messages():
     consumer = Consumer(get_kafka_config())
     # Subscribe to all sensor topics including water usage
     consumer.subscribe(['sensor_metrics_air', 'sensor_metrics_ambient', 'sensor_metrics_traffic', 
-                      'sensor_metrics_water_quality', 'water_usage'])
+                      'sensor_metrics_water_quality', 'sensor_metrics_water_usage'])
     
     try:
         while True:
@@ -163,7 +163,7 @@ def consume_kafka_messages():
                     data['sensor_type'] = 'traffic'
                 elif topic == 'sensor_metrics_water_quality':
                     data['sensor_type'] = 'water_quality'
-                elif topic == 'water_usage':
+                elif topic == 'sensor_metrics_water_usage':
                     data['sensor_type'] = 'water_usage'
                 
                 # Get city_id for this sensor
