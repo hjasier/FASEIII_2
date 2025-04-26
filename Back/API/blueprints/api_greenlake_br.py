@@ -213,8 +213,7 @@ def list_tables():
         cur.execute("""
             SELECT table_schema, table_name
               FROM information_schema.tables
-             WHERE table_type = 'BASE TABLE'
-               AND table_schema NOT IN ('information_schema', 'pg_catalog')
+             WHERE table_type = 'BASE TABLE' AND table_schema = 'public'
              ORDER BY table_schema, table_name;
         """)
         rows = cur.fetchall()
@@ -240,3 +239,26 @@ def list_tables():
         },
         "results": tables
     })
+
+@api_bp.route('/columns/<table_name>', methods=['GET'])
+def get_columns(table_name):
+    try:
+        query = """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'greenlake_data' AND table_name = %s
+            ORDER BY ordinal_position;
+        """
+        cur.execute(query, (table_name,))
+        rows = cur.fetchall()
+
+        if not rows:
+            return jsonify({"error": f"Table '{table_name}' not found."}), 404
+
+        columns = [row[0] for row in rows]
+        return jsonify(columns)
+
+    except Exception as e:
+        # Log the error if needed
+        return jsonify({"error": str(e)}), 500
+
