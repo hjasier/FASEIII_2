@@ -59,43 +59,29 @@ function Admin() {
         const newHistory = [{ sql, timestamp: new Date().toISOString() }, ...history.slice(0, 9)];
         setHistory(newHistory);
 
-        return new Promise((resolve) => {
-            const query = { "query": sql }
-            const response = axios.post('localhost:5454/admin_query')
-            setTimeout(() => {
+        return new Promise(async (resolve) => {
+            try {
+                const { data, status } = await axios.post('http://localhost:5454/admin_query', { query: sql });
 
-                // Mock response based on query keywords
-                if (sql.toLowerCase().includes('select') && sql.toLowerCase().includes('users')) {
-                    setResults({
-                        columns: ['id', 'name', 'email', 'role'],
-                        rows: [
-                            { id: 1, name: 'Admin User', email: 'admin@greenlake.org', role: 'admin' },
-                            { id: 2, name: 'John Doe', email: 'john@example.com', role: 'user' },
-                            { id: 3, name: 'Jane Smith', email: 'jane@example.com', role: 'user' }
-                        ]
-                    });
-                } else if (sql.toLowerCase().includes('select') && sql.toLowerCase().includes('hospitales')) {
-                    setResults({
-                        columns: ['id', 'nombre', 'dirección', 'capacidad', 'especialidad'],
-                        rows: [
-                            { id: 1, nombre: 'Hospital Central', dirección: 'Av. Principal 123', capacidad: 500, especialidad: 'General' },
-                            { id: 2, nombre: 'Clínica Norte', dirección: 'Calle 45 #78', capacidad: 120, especialidad: 'Pediatría' },
-                            { id: 3, nombre: 'Centro Médico Este', dirección: 'Plaza Mayor 56', capacidad: 300, especialidad: 'Cardiología' }
-                        ]
-                    });
-                } else if (sql.toLowerCase().includes('create') || sql.toLowerCase().includes('insert') || sql.toLowerCase().includes('update') || sql.toLowerCase().includes('delete')) {
-                    setResults({
-                        message: 'Operación ejecutada correctamente',
-                        affectedRows: Math.floor(Math.random() * 10) + 1
-                    });
+                if (status !== 200) {
+                    console.error('Error executing query:', data);
+                    setError(data.message || 'Unknown error');
                 } else {
-                    setResults({
-                        columns: ['resultado'],
-                        rows: [{ resultado: 'Consulta ejecutada, 0 resultados encontrados' }]
+                    console.log('Query executed successfully:', data);
+                    const columns = Object.keys(data.results?.[0] || {});
+                    const rows = (data.results || []).map(item => {
+                        const row = {};
+                        columns.forEach(col => row[col] = item[col]);
+                        return row;
                     });
+                    setResults({ columns, rows });
                 }
+            } catch (error) {
+                console.error('Error executing query:', error);
+                setError(error?.response?.data?.message || error.message || 'Network error');
+            } finally {
                 resolve();
-            }, 800);
+            }
         });
     };
 

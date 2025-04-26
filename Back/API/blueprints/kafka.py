@@ -16,7 +16,7 @@ from threading import Lock
 kafka_bp = Blueprint('kafka', __name__, url_prefix='/api/greenlake-eval/sensors')
 
 # Configure logging
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Thread-safe message store
@@ -103,6 +103,7 @@ def get_city_id(sensor_id):
     # Query database
     conn = get_db_connection()
     if not conn:
+        logger.error(f"Cannot get city_id for sensor {sensor_id}: Database connection failed")
         return None
     
     cursor = conn.cursor()
@@ -112,12 +113,14 @@ def get_city_id(sensor_id):
         
         if result:
             city_id = result[0]
-            # Cache the result
-            message_store.cache_city(sensor_id, city_id)
+            # Only cache valid city_ids
+            if city_id is not None:
+                message_store.cache_city(sensor_id, city_id)
             return city_id
+        logger.warning(f"No city_id found for sensor {sensor_id}")
         return None
     except Exception as e:
-        logger.error(f"Database query error: {e}")
+        logger.error(f"Database query error when getting city_id for sensor {sensor_id}: {e}")
         return None
     finally:
         cursor.close()
@@ -126,7 +129,9 @@ def get_city_id(sensor_id):
 # Function to consume Kafka messages
 def consume_kafka_messages():
     consumer = Consumer(get_kafka_config())
-    consumer.subscribe(['sensor_metrics_air'])
+    # Subscribe to all sensor topics including water usage
+    consumer.subscribe(['sensor_metrics_air', 'sensor_metrics_ambient', 'sensor_metrics_traffic', 
+                      'sensor_metrics_water_quality', 'sensor_metrics_water_usage'])
     
     try:
         while True:
@@ -143,6 +148,24 @@ def consume_kafka_messages():
                 message_value = msg.value().decode('utf-8')
                 data = json.loads(message_value)
                 
+                # Get topic name
+                topic = msg.topic()
+                
+                # Add topic information to message
+                data['source_topic'] = topic
+                
+                # Determine sensor type based on topic
+                if topic == 'sensor_metrics_air':
+                    data['sensor_type'] = 'air'
+                elif topic == 'sensor_metrics_ambient':
+                    data['sensor_type'] = 'ambient'
+                elif topic == 'sensor_metrics_traffic':
+                    data['sensor_type'] = 'traffic'
+                elif topic == 'sensor_metrics_water_quality':
+                    data['sensor_type'] = 'water_quality'
+                elif topic == 'sensor_metrics_water_usage':
+                    data['sensor_type'] = 'water_usage'
+                
                 # Get city_id for this sensor
                 sensor_id = data.get('sensor_id')
                 city_id = get_city_id(sensor_id)
@@ -152,7 +175,7 @@ def consume_kafka_messages():
                 
                 # Store message
                 message_store.add_message(data)
-                #logger.info(f"Processed message: sensor_id={sensor_id}, city_id={city_id}")
+                #logger.info(f"Processed message from {topic}: sensor_id={sensor_id}, city_id={city_id}")
                 
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
@@ -178,7 +201,6 @@ def on_register(state):
 @kafka_bp.route('/data', methods=['GET'])
 @cross_origin()
 def get_data():
-    print(message_store.get_all())
     return jsonify(message_store.get_all())
 
 @kafka_bp.route('/sensor-data', methods=['GET'])
@@ -216,7 +238,7 @@ def health_check():
 @cross_origin()
 def aggregate_sensor_data(operation):
     # Add entry point logging
-    logger.info(f"=== ENDPOINT CALLED: /{operation} with params: {request.args} ===")
+    #logger.info(f"=== ENDPOINT CALLED: /{operation} with params: {request.args} ===")
     
     # Validate operation type
     if operation not in ['average', 'min', 'max']:
@@ -229,7 +251,7 @@ def aggregate_sensor_data(operation):
     date_str = request.args.get('date')
     
     # Log all parameters
-    logger.info(f"Parameters: city_id={city_id}, sensor_type={sensor_type}, date={date_str}")
+    #logger.info(f"Parameters: city_id={city_id}, sensor_type={sensor_type}, date={date_str}")
     
     # Validate required parameters
     if not city_id:
@@ -251,14 +273,20 @@ def aggregate_sensor_data(operation):
     try:
         # Parse the date string
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        logger.info(f"Parsed date: {target_date}")
+        #logger.info(f"Parsed date: {target_date}")
     except ValueError:
         logger.warning(f"Invalid date format: {date_str}")
         return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
     
     # Get all messages for the specified city
     messages = message_store.get_by_city(city_id)
-    logger.info(f"Messages for city_id={city_id}: {messages}")
+    # Log if we found messages with null city_id
+    if not messages:
+        logger.warning(f"No messages found for city_id={city_id}")
+    else:
+        null_city_messages = [msg for msg in messages if msg.get('city_id') is None]
+        if null_city_messages:
+            logger.warning(f"Found {len(null_city_messages)} messages with null city_id for request city_id={city_id}")
     
     # Filter by sensor type and date
     filtered_messages = []
@@ -271,13 +299,25 @@ def aggregate_sensor_data(operation):
         # Parse event_time and compare only the date part
         try:
             event_time = datetime.fromisoformat(msg['event_time'].replace('Z', '+00:00'))
-            logger.info(f"Event time: {event_time}")
+            #logger.info(f"Event time: {event_time}")
             event_date = event_time.date()
             
-            # Check if this message is from the target date
+            # Check if this message is from the target date and matches the requested sensor type
             if event_date == target_date:
-                # For air sensor type, include all air-related metrics
-                if sensor_type == 'air':
+                # For air sensor type
+                if sensor_type == 'air' and msg.get('sensor_type') == 'air':
+                    filtered_messages.append(msg)
+                # For ambient sensor type
+                elif sensor_type == 'ambient' and msg.get('sensor_type') == 'ambient':
+                    filtered_messages.append(msg)
+                # For traffic sensor type
+                elif sensor_type == 'traffic' and msg.get('sensor_type') == 'traffic':
+                    filtered_messages.append(msg)
+                # For water quality sensor type
+                elif sensor_type == 'water_quality' and msg.get('sensor_type') == 'water_quality':
+                    filtered_messages.append(msg)
+                # For water usage sensor type
+                elif sensor_type == 'water_usage' and msg.get('sensor_type') == 'water_usage':
                     filtered_messages.append(msg)
         except (ValueError, TypeError):
             # Skip messages with invalid timestamps
@@ -287,8 +327,44 @@ def aggregate_sensor_data(operation):
     if not filtered_messages:
         return jsonify({'error': f'No data found for city_id={city_id}, sensor_type={sensor_type}, date={date_str}'}), 404
     
-    # Calculate metrics for air sensor data
-    metrics = {}
+    # Calculate metrics based on sensor type
+    metrics_list = []
+    
+    # Define units for each metric type
+    metric_units = {
+        'air': {
+            'pm10': 'µg/m³',
+            'co': 'ppm',
+            'co2': 'ppm',
+            'no2': 'ppb',
+            'o3': 'ppb',
+            'so2': 'ppb'
+        },
+        'ambient': {
+            'humidity': '%',
+            'temperature': '°C',
+            'solar_radiation': 'W/m²'
+        },
+        'traffic': {
+            'avg_speed': 'km/h',
+            'flow_rate': 'vehicles/hour',
+            'occupancy': '%',
+            'vehicle_density': 'vehicles/km',
+            'congestion_index': 'index'
+        },
+        'water_quality': {
+            'ph_level': 'pH',
+            'turbidity': 'NTU',
+            'conductivity': 'µS/cm',
+            'dissolved_oxygen': 'mg/L',
+            'water_temperature': '°C'
+        },
+        'water_usage': {
+            'usage_liters': 'L',
+            'total_daily_usage': 'L'
+        }
+    }
+    
     if sensor_type == 'air':
         # List of air metrics to aggregate
         air_metrics = ['co', 'o3', 'co2', 'no2', 'so2', 'pm10']
@@ -299,20 +375,124 @@ def aggregate_sensor_data(operation):
             
             if values:
                 if operation == 'average':
-                    metrics[metric] = sum(values) / len(values)
+                    value = sum(values) / len(values)
                 elif operation == 'min':
-                    metrics[metric] = min(values)
+                    value = min(values)
                 elif operation == 'max':
-                    metrics[metric] = max(values)
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['air'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'ambient':
+        # List of ambient metrics to aggregate
+        ambient_metrics = ['humidity', 'temperature', 'solar_radiation']
+        
+        for metric in ambient_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['ambient'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'traffic':
+        # List of traffic metrics to aggregate
+        traffic_metrics = ['avg_speed', 'flow_rate', 'occupancy', 'vehicle_density', 'congestion_index']
+        
+        for metric in traffic_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['traffic'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'water_quality':
+        # List of water quality metrics to aggregate
+        water_quality_metrics = ['ph_level', 'turbidity', 'conductivity', 'dissolved_oxygen', 'water_temperature']
+        
+        for metric in water_quality_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['water_quality'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+    
+    elif sensor_type == 'water_usage':
+        # List of water usage metrics to aggregate
+        water_usage_metrics = ['usage_liters']
+        
+        for metric in water_usage_metrics:
+            # Collect all values for this metric
+            values = [float(msg.get(metric, 0)) for msg in filtered_messages if msg.get(metric) is not None]
+            
+            if values:
+                if operation == 'average':
+                    value = sum(values) / len(values)
+                elif operation == 'min':
+                    value = min(values)
+                elif operation == 'max':
+                    value = max(values)
+                
+                metrics_list.append({
+                    'metric': metric,
+                    'unit': metric_units['water_usage'].get(metric, ''),
+                    'value': round(value, 2)
+                })
+                
+                # Add daily total for water usage
+                if metric == 'usage_liters':
+                    metrics_list.append({
+                        'metric': 'total_daily_usage',
+                        'unit': metric_units['water_usage'].get('total_daily_usage', ''),
+                        'value': round(sum(values), 2)
+                    })
+    
+    # Get current timestamp in ISO format
+    current_timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
     # Prepare the response
     response = {
-        'city_id': city_id,
-        'sensor_type': sensor_type,
-        'date': date_str,
-        'operation': operation,
-        'metrics': metrics,
-        'sample_size': len(filtered_messages)
+        'metadata': {
+            'status': 'success',
+            'timestamp': current_timestamp
+        },
+        'results': metrics_list
     }
     
     return jsonify(response)
