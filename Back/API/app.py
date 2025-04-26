@@ -4,6 +4,8 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from dao import cur
 import psycopg2
+from socketio_instance import socketio
+from blueprints.kafka import kafka_bp, init_kafka_consumer
 
 app = Flask(__name__)  # crea la aplicación
 
@@ -75,6 +77,11 @@ def events_nearby():
         })
     
 app.register_blueprint(api_bp)
+
+app.register_blueprint(kafka_bp)
+socketio.init_app(app)
+
+init_kafka_consumer()  
     
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5454)
+    socketio.run(app,debug=True, host='0.0.0.0', port=5454)
