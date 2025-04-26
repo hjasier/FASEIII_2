@@ -1,11 +1,8 @@
-import { View, Text } from 'react-native'
 import React from 'react'
 
-const Home = () => {
+function Home() {
   return (
-    <View>
-      <Text>Home</Text>
-    </View>
+    <div className="text-3xl">Home</div>
   )
 }
 

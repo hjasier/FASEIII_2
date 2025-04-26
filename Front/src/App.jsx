@@ -1,8 +1,6 @@
 // src/App.jsx
 
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import AdminDashboard from './pages/AdminDashboard';
-import UserDashboard from './pages/UserDashboard';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
@@ -14,13 +12,13 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Rutas protegidas */}
-        <Route path="/" element={
+        <Route path="/auth" element={
             <ProtectedRoute>
               <></>
             </ProtectedRoute>
         } />
 
-        <Route path="/form" element={
+        <Route path="/" element={
          
           <Home />
          
