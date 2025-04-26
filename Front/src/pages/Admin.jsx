@@ -60,9 +60,9 @@ function Admin() {
         setHistory(newHistory);
 
         return new Promise((resolve) => {
-            const response = axios.get('localhost:5454/')
+            const query = { "query": sql }
+            const response = axios.post('localhost:5454/admin_query')
             setTimeout(() => {
-                const
 
                 // Mock response based on query keywords
                 if (sql.toLowerCase().includes('select') && sql.toLowerCase().includes('users')) {
