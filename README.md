@@ -1,0 +1,5 @@
+CREATE ROLE readonly_user LOGIN PASSWORD 'asdf'; 
+REVOKE ALL ON SCHEMA public FROM readonly_user; 
+GRANT USAGE ON SCHEMA public TO readonly_user; 
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_user; 
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly_user;

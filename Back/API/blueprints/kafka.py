@@ -217,6 +217,7 @@ def kafka_consumer():
                 last_message_time = time.time()  # Reset timer
             
             if msg is None:
+                print("No message received")
                 continue
                 
             if msg.error():

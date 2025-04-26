@@ -19,10 +19,14 @@ const SensorChart = () => {
         
         // Format data for the chart if needed
         const formattedData = response.data.map(item => ({
-          timestamp: new Date(item.timestamp).toLocaleTimeString(),
-          temperature: item.temperature,
-          humidity: item.humidity,
-          // Add other sensor metrics you have
+          timestamp: new Date(item.event_time).toLocaleTimeString(),
+          co: item.co,
+          co2: item.co2,
+          no2: item.no2,
+          o3: item.o3,
+          pm10: item.pm10,
+          so2: item.so2,
+          sensor_id: item.sensor_id
         }));
         
         setSensorData(formattedData);
@@ -52,7 +56,7 @@ const SensorChart = () => {
 
   return (
     <div style={{ width: '100%', height: 400 }}>
-      <h2>Sensor Metrics</h2>
+      <h2>Air Quality Metrics</h2>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={sensorData}
@@ -70,11 +74,15 @@ const SensorChart = () => {
           <Legend />
           <Line 
             type="monotone" 
-            dataKey="temperature" 
+            dataKey="co" 
             stroke="#8884d8" 
             activeDot={{ r: 8 }} 
           />
-          <Line type="monotone" dataKey="humidity" stroke="#82ca9d" />
+          <Line type="monotone" dataKey="co2" stroke="#82ca9d" />
+          <Line type="monotone" dataKey="no2" stroke="#ff7300" />
+          <Line type="monotone" dataKey="o3" stroke="#0088fe" />
+          <Line type="monotone" dataKey="pm10" stroke="#00c49f" />
+          <Line type="monotone" dataKey="so2" stroke="#ffbb28" />
           {/* Add more Line components for other metrics */}
         </LineChart>
       </ResponsiveContainer>
