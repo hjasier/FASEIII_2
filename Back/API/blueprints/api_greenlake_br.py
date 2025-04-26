@@ -20,7 +20,6 @@ def test1():
         }
     })
 
-
 @api_bp.route('/hospitals/nearby', methods=['GET'])
 def hospitals_nearby():
     # 1) Leer y validar parámetros
@@ -167,7 +166,7 @@ def events_nearby():
         })
 
     # 5) Timestamp de la respuesta
-    resp_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    resp_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return jsonify({
         "metadata": {
@@ -341,4 +340,4 @@ def get_columns(table_name):
         },
         "results": columns
     })
-
+    
