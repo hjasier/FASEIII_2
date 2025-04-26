@@ -242,23 +242,45 @@ def list_tables():
 
 @api_bp.route('/columns/<table_name>', methods=['GET'])
 def get_columns(table_name):
+    """
+    GET /api/greenlake-eval/columns/<table_name>
+    Devuelve todas las columnas y sus tipos de datos de una tabla específica en el esquema público.
+    """
     try:
-        query = """
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = 'greenlake_data' AND table_name = %s
-            ORDER BY ordinal_position;
-        """
-        cur.execute(query, (table_name,))
+        cur.execute("""
+            SELECT column_name, data_type
+              FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = %s
+             ORDER BY ordinal_position;
+        """, (table_name,))
         rows = cur.fetchall()
 
-        if not rows:
-            return jsonify({"error": f"Table '{table_name}' not found."}), 404
-
-        columns = [row[0] for row in rows]
-        return jsonify(columns)
-
     except Exception as e:
-        # Log the error if needed
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "timestamp": datetime.now().isoformat() + "Z"
+            },
+            "error": f"Error al consultar la base de datos: {e}"
+        }), 500
+
+    if not rows:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "timestamp": datetime.now().isoformat() + "Z"
+            },
+            "error": f"La tabla '{table_name}' no existe o no tiene columnas."
+        }), 404
+
+    # Formateamos en una lista de diccionarios {name, type}
+    columns = [{"column_name": name, "data_type": dtype} for name, dtype in rows]
+
+    return jsonify({
+        "metadata": {
+            "status": "success",
+            "timestamp": datetime.now().isoformat() + "Z"
+        },
+        "results": columns
+    })
 
