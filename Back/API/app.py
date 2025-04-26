@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from blueprints.dao import cur
 import psycopg2
-from blueprints.kafka import kafka_bp, init_kafka_consumer
+from blueprints.kafka import kafka_bp
 from blueprints.api_greenlake_br import api_bp
 from blueprints.database import database_bp
 from blueprints.query_br import q_br
@@ -27,7 +27,5 @@ app.register_blueprint(q_br)
 
 
 if __name__ == '__main__':
-    # Initialize Kafka consumer if needed
-    init_kafka_consumer()
     # Use standard Flask run method instead of socketio.run
     app.run(debug=True, host='0.0.0.0', port=5454)
