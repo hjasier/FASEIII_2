@@ -181,25 +181,25 @@ function Projects() {
     switch (type) {
       case 'bar':
         return (
-          <div className="bg-gray-100 p-4 rounded-md flex flex-col items-center justify-center h-40">
+          <div className="bg-green-50 p-4 rounded-md flex flex-col items-center justify-center h-40">
             <div className="text-sm font-medium mb-2">{title}</div>
             <div className="flex items-end justify-around w-full h-24 px-4">
               {[40, 70, 30, 85, 50].map((height, i) => (
-                <div key={i} className="w-6 bg-blue-500" style={{ height: `${height}%` }}></div>
+                <div key={i} className="w-6 bg-[#36C78D]" style={{ height: `${height}%` }}></div>
               ))}
             </div>
           </div>
         );
       case 'line':
         return (
-          <div className="bg-gray-100 p-4 rounded-md flex flex-col items-center justify-center h-40">
+          <div className="bg-green-50 p-4 rounded-md flex flex-col items-center justify-center h-40">
             <div className="text-sm font-medium mb-2">{title}</div>
             <div className="relative w-full h-24">
               <svg viewBox="0 0 100 50" className="w-full h-full">
                 <polyline
                   points="0,40 20,35 40,20 60,30 80,10 100,25"
                   fill="none"
-                  stroke="#3B82F6"
+                  stroke="#36C78D"
                   strokeWidth="2"
                 />
               </svg>
@@ -208,22 +208,22 @@ function Projects() {
         );
       case 'pie':
         return (
-          <div className="bg-gray-100 p-4 rounded-md flex flex-col items-center justify-center h-40">
+          <div className="bg-green-50 p-4 rounded-md flex flex-col items-center justify-center h-40">
             <div className="text-sm font-medium mb-2">{title}</div>
             <div className="relative w-24 h-24">
               <svg viewBox="0 0 32 32" className="w-full h-full">
-                <circle cx="16" cy="16" r="16" fill="#DBEAFE" />
+                <circle cx="16" cy="16" r="16" fill="#ecfdf5" />
                 <path
                   d="M16 0A16 16 0 0 1 32 16 16 16 0 0 1 16 32 16 16 0 0 1 0 16"
                   fill="transparent"
-                  stroke="#3B82F6"
+                  stroke="#36C78D"
                   strokeWidth="16"
                   strokeDasharray="25 75"
                 />
                 <path
                   d="M16 0A16 16 0 0 1 32 16 16 16 0 0 1 16 32 16 16 0 0 1 0 16"
                   fill="transparent"
-                  stroke="#1E40AF"
+                  stroke="#2da677"
                   strokeWidth="16"
                   strokeDasharray="50 75"
                   strokeDashoffset="-25"
@@ -234,7 +234,7 @@ function Projects() {
         );
       default:
         return (
-          <div className="bg-gray-100 p-4 rounded-md flex items-center justify-center h-40">
+          <div className="bg-green-50 p-4 rounded-md flex items-center justify-center h-40">
             <span className="text-gray-500">{title}</span>
           </div>
         );
@@ -242,218 +242,240 @@ function Projects() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-b from-white to-green-50">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <button 
-          onClick={handleBack}
-          className="flex items-center text-blue-600 hover:text-blue-800"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
-          {activeProject ? 'Volver a Proyectos' : 'Volver al Inicio'}
-        </button>
-        
-        <h1 className="text-2xl font-bold">
-          {activeProject ? `Proyecto: ${activeProject.name}` : 'Mis Proyectos'}
-        </h1>
-        
-        {!activeProject ? (
-          <button 
-            onClick={handleCreateProject}
-            className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Crear Proyecto
-          </button>
-        ) : (
-          <div className="flex space-x-3">
-            <button 
-              onClick={() => handleOpenProject(activeProject)}
-              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-[#36C78D] rounded-full flex items-center justify-center mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Editar en Canvas
-            </button>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              {activeProject ? `Proyecto: ${activeProject.name}` : 'Mis Proyectos'}
+            </h1>
+          </div>
+          
+          {!activeProject ? (
             <button 
-              onClick={() => setShowCreateVisualization(true)}
-              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+              onClick={handleCreateProject}
+              className="flex items-center bg-[#36C78D] hover:bg-[#2da677] text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
-              Crear Visualización
+              Crear Proyecto
             </button>
+          ) : (
+            <div className="flex space-x-3">
+              <button 
+                onClick={() => handleOpenProject(activeProject)}
+                className="flex items-center bg-[#36C78D] hover:bg-[#2da677] text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                  <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                </svg>
+                Editar en Canvas
+              </button>
+              <button 
+                onClick={() => setShowCreateVisualization(true)}
+                className="flex items-center bg-white border border-[#36C78D] text-[#36C78D] px-4 py-2 rounded-md hover:bg-[#f0fbf7] transition-colors shadow-sm hover:shadow"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Crear Visualización
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+      
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Back button */}
+        <div className="mb-6">
+          <button 
+            onClick={handleBack}
+            className="flex items-center text-[#36C78D] hover:text-[#2da677]"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            {activeProject ? 'Volver a Proyectos' : 'Volver al Inicio'}
+          </button>
+        </div>
+
+        {/* Main Content */}
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin inline-block w-8 h-8 border-4 border-[#36C78D] border-t-transparent rounded-full mb-2"></div>
+            <p className="text-gray-600">Cargando proyectos...</p>
+          </div>
+        ) : activeProject ? (
+          <div>
+            {/* Project Details */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100">
+              <div className="mb-4">
+                <h2 className="text-lg font-medium text-gray-900">Detalles del Proyecto</h2>
+                <p className="text-sm text-gray-600 mt-1">{activeProject.description}</p>
+                <p className="text-xs text-gray-500 mt-1">Creado el {activeProject.createdAt}</p>
+              </div>
+              
+              <div className="mb-4">
+                <h3 className="text-md font-medium text-gray-900">Tablas en este proyecto</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {activeProject.tables.map(table => (
+                    <span key={table.id} className="px-3 py-1 bg-green-50 text-[#36C78D] text-xs rounded-full">
+                      {table.name} <span className="text-green-600">({table.category})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleDeleteProject(activeProject.id)}
+                  className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Eliminar Proyecto
+                </button>
+              </div>
+            </div>
+            
+            {/* Visualizations */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Visualizaciones</h2>
+              
+              {activeProject.visualizations.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
+                  <p className="text-gray-600 mb-1">No hay visualizaciones en este proyecto.</p>
+                  <p className="text-gray-500 text-sm">Cree una nueva visualización para comenzar.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {activeProject.visualizations.map(vis => (
+                    <div key={vis.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                      {renderVisualizationPlaceholder(vis.type, vis.title)}
+                      <div className="p-3 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-xs text-gray-500">{vis.createdAt}</span>
+                            <span className="ml-2 px-2 py-1 bg-green-50 text-green-700 text-xs rounded">
+                              {vis.type}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteVisualization(vis.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-lg shadow-sm border border-gray-100">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-[#36C78D] opacity-70 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            <p className="text-gray-600 mb-2 text-lg">No tiene proyectos creados.</p>
+            <p className="text-gray-500 mb-6">Cree un nuevo proyecto para empezar a analizar datos.</p>
+            <button 
+              onClick={handleCreateProject}
+              className="bg-[#36C78D] hover:bg-[#2da677] text-white px-6 py-2 rounded-md transition-colors inline-flex items-center shadow hover:shadow-md"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Crear Proyecto
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map(project => (
+              <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-all">
+                <div className="bg-[#36C78D] h-2" />
+                <div className="p-5">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h2>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{project.description}</p>
+                  
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                    <span>Creado: {project.createdAt}</span>
+                    <span>{project.tables.length} tablas</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {project.tables.slice(0, 3).map(table => (
+                      <span key={table.id} className="px-2 py-1 bg-green-50 text-green-800 text-xs rounded">
+                        {table.name}
+                      </span>
+                    ))}
+                    {project.tables.length > 3 && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                        +{project.tables.length - 3} más
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#36C78D] mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                      </svg>
+                      <span className="text-sm text-gray-600">{project.visualizations.length} visualizaciones</span>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleViewProjectDetails(project)}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm transition-colors"
+                      >
+                        Detalles
+                      </button>
+                      <button 
+                        onClick={() => handleOpenProject(project)}
+                        className="bg-[#36C78D] hover:bg-[#2da677] text-white px-3 py-1 rounded text-sm transition-colors"
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
-      
-      {/* Main Content */}
-      {isLoading ? (
-        <div className="p-8 text-center">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-2"></div>
-          <p className="text-gray-600">Cargando proyectos...</p>
-        </div>
-      ) : activeProject ? (
-        <div>
-          {/* Project Details */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Detalles del Proyecto</h2>
-              <p className="text-sm text-gray-600 mt-1">{activeProject.description}</p>
-              <p className="text-xs text-gray-500 mt-1">Creado el {activeProject.createdAt}</p>
-            </div>
-            
-            <div className="mb-4">
-              <h3 className="text-md font-medium text-gray-900">Tablas en este proyecto</h3>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {activeProject.tables.map(table => (
-                  <span key={table.id} className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {table.name} <span className="text-blue-600">({table.category})</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <button
-                onClick={() => handleDeleteProject(activeProject.id)}
-                className="text-red-600 hover:text-red-800 text-sm flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                Eliminar Proyecto
-              </button>
-            </div>
-          </div>
-          
-          {/* Visualizations */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Visualizaciones</h2>
-            
-            {activeProject.visualizations.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-                <p className="text-gray-600 mb-1">No hay visualizaciones en este proyecto.</p>
-                <p className="text-gray-500 text-sm">Cree una nueva visualización para comenzar.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeProject.visualizations.map(vis => (
-                  <div key={vis.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    {renderVisualizationPlaceholder(vis.type, vis.title)}
-                    <div className="p-3 border-t border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-xs text-gray-500">{vis.createdAt}</span>
-                          <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                            {vis.type}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteVisualization(vis.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-gray-600 mb-2 text-lg">No tiene proyectos creados.</p>
-          <p className="text-gray-500 mb-6">Cree un nuevo proyecto para empezar a analizar datos.</p>
-          <button 
-            onClick={handleCreateProject}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors inline-flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            Crear Proyecto
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map(project => (
-            <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-              <div className="p-5">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h2>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{project.description}</p>
-                
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span>Creado: {project.createdAt}</span>
-                  <span>{project.tables.length} tablas</span>
-                </div>
-                
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {project.tables.slice(0, 3).map(table => (
-                    <span key={table.id} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                      {table.name}
-                    </span>
-                  ))}
-                  {project.tables.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
-                      +{project.tables.length - 3} más
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                      <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-                    </svg>
-                    <span className="text-sm text-gray-600">{project.visualizations.length} visualizaciones</span>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleViewProjectDetails(project)}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm transition-colors"
-                    >
-                      Detalles
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                    >
-                      Editar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
       
       {/* Create Visualization Modal */}
       {showCreateVisualization && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">Crear Nueva Visualización</h2>
+            <div className="flex items-center mb-6 pb-3 border-b border-gray-200">
+              <div className="w-8 h-8 bg-[#36C78D] rounded-full flex items-center justify-center mr-2 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Crear Nueva Visualización</h2>
+            </div>
             
             <div className="mb-4">
               <label htmlFor="visTitle" className="block text-sm font-medium text-gray-700 mb-1">
@@ -465,7 +487,7 @@ function Projects() {
                 value={visualizationTitle}
                 onChange={(e) => setVisualizationTitle(e.target.value)}
                 placeholder="Ingrese un título descriptivo"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
               />
             </div>
             
@@ -477,7 +499,7 @@ function Projects() {
                 id="visType"
                 value={visualizationType}
                 onChange={(e) => setVisualizationType(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                className="w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
               >
                 <option value="bar">Gráfico de Barras</option>
                 <option value="line">Gráfico de Líneas</option>
@@ -498,7 +520,7 @@ function Projects() {
                       id={`col-${col.id}`}
                       checked={selectedColumns.includes(col.id)}
                       onChange={() => toggleColumnSelection(col.id)}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                      className="h-4 w-4 text-[#36C78D] border-gray-300 rounded mr-2 focus:ring-[#36C78D]"
                     />
                     <label htmlFor={`col-${col.id}`} className="text-sm text-gray-700">
                       <span className="font-medium">{col.table}</span>.{col.column}
@@ -508,23 +530,35 @@ function Projects() {
               </div>
             </div>
             
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
               <button
                 onClick={() => setShowCreateVisualization(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateVisualization}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-[#36C78D] hover:bg-[#2da677] text-white rounded-md transition-colors flex items-center"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
                 Crear Visualización
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-8 py-4">
+        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
+          <p>
+            GreenLake Data Explorer - Analiza y visualiza los datos de la ciudad sostenible
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

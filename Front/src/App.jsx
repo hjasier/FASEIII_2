@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
 import Project from './pages/Project';
+import Realtime from './pages/Realtime';
 
 function App() {
   return (
@@ -35,6 +36,12 @@ function App() {
         <Route path="/project/:projectId" 
           element={
             <Project/>
+          } 
+        />
+
+        <Route path="/realtime" 
+          element={
+            <Realtime/>
           } 
         />
 
