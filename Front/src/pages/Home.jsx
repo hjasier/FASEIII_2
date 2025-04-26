@@ -31,6 +31,10 @@ function Home() {
     navigate('/projects');
   };
 
+  const handleRealTime = () => {
+    navigate('/sensor-chart');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* User Type Selector */}
@@ -96,10 +100,23 @@ function Home() {
                 Escribe tu pregunta en lenguaje natural y nuestro sistema la analizará
               </p>
             </form>
+            
+            {/* Real-time button for normal users too */}
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleRealTime}
+                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Datos en Tiempo Real
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col space-y-6 w-full max-w-2xl">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <button
                 onClick={handleBrowseTables}
                 className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors flex flex-col items-center justify-center"
@@ -120,6 +137,16 @@ function Home() {
                 </svg>
                 <span>Mis Proyectos</span>
               </button>
+              
+              <button
+                onClick={handleRealTime}
+                className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors flex flex-col items-center justify-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>Datos en Tiempo Real</span>
+              </button>
             </div>
 
             <div className="bg-gray-100 p-4 rounded-lg">
@@ -129,6 +156,7 @@ function Home() {
                 <li>Crear un nuevo proyecto de análisis</li>
                 <li>Generar gráficos personalizados</li>
                 <li>Exportar datos</li>
+                <li>Ver datos de sensores en tiempo real</li>
               </ul>
             </div>
           </div>

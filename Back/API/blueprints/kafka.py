@@ -5,7 +5,7 @@ import json
 import time
 
 # Create a Blueprint instead of a Flask app
-kafka_bp = Blueprint('kafka', __name__, url_prefix='/api/kafka')
+kafka_bp = Blueprint('kafka', __name__, url_prefix='/kafka')
 
 # Global variable to store the latest sensor data
 sensor_data = []
@@ -13,15 +13,6 @@ sensor_data = []
 data_lock = threading.Lock()
 # Thread for Kafka consumer
 kafka_thread = None
-
-@kafka_bp.route('/')
-def index():
-    return render_template('index.html')
-
-@kafka_bp.route('/saludo', methods=['GET'])
-def saludo():
-    nombre = request.args.get('nombre', 'mundo')
-    return jsonify({ 'mensaje': f'¡Hola, {nombre}!' })
 
 @kafka_bp.route('/control', methods=['POST'])
 def trigger_kafka():
@@ -50,7 +41,7 @@ def kafka_consumer():
     
     try:
         while True:
-            msg = c.poll(1.0)
+            msg = c.poll(10.0)
             if msg is None:
                 continue
             if msg.error():

@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
+import SensorDashboard from './pages/SensorDashboard';
 
 function App() {
   return (
@@ -27,6 +28,12 @@ function App() {
         <Route path="/projects"
           element={
             <Projects/>
+          }
+        />
+
+        <Route path="/sensor-chart"
+          element={
+            <SensorDashboard/>
           }
         />
         
