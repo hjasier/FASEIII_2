@@ -18,19 +18,68 @@ function Tables() {
   const categories = ['all', 'salud', 'educación', 'transporte', 'seguridad', 'economía'];
 
   // Mock tables data - replace with actual API call
+  // useEffect(() => {
+  //   const fetchTables = async () => {
+  //     try {
+  //       const response = await fetch('http://127.0.0.1:5454/tables');
+  //       const data = await response.json();
+  //       if (response.ok) {
+  //         const fetchedTables = data.results.map((item, index) => ({
+  //           id: index + 1,
+  //           name: item.table,
+  //           category: 'uncategorized', // Default category
+  //           description: item.description ? item.description : `-`, // Use real description if available
+  //           columns: [] // Placeholder for columns (can fetch them later if needed)
+  //         }));
+  //         setTables(fetchedTables);
+  //         setFilteredTables(fetchedTables);
+  //       } else {
+  //         console.error('Error fetching tables:', data.error);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching tables:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  
+  //   fetchTables();
+  // }, []);
+
   useEffect(() => {
     const fetchTables = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5454/tables');
+        console.log(response)
         const data = await response.json();
         if (response.ok) {
-          const fetchedTables = data.results.map((item, index) => ({
-            id: index + 1,
-            name: item.table,
-            category: 'uncategorized', // Default category
-            description: `Tabla en el esquema ${item.schema}`, // Optional description
-            columns: [] // You can fetch real columns later if needed
-          }));
+          const fetchedTables = await Promise.all(
+            data.results.map(async (item, index) => {
+              let columns = [];
+              let columnCount = 0;
+              try {
+                const columnsResponse = await fetch(`http://127.0.0.1:5454/columns/${item.table}`);
+                const columnsData = await columnsResponse.json();
+                if (columnsResponse.ok) {
+                  columns = columnsData.results.map(col => col.column_name);
+                  columnCount = columnsData.results.length; // ✅ Correct way to count columns
+                } else {
+                  console.error(`Error fetching columns for table ${item.table}:`, columnsData.error);
+                }
+              } catch (err) {
+                console.error(`Error fetching columns for table ${item.table}:`, err);
+              }
+  
+              return {
+                id: index + 1,
+                name: item.table,
+                category: 'uncategorized',
+                description: item.description ? item.description : '-',
+                columns: columns,
+                columnCount: columnCount // ✅ Now this will be the real count
+              };
+            })
+          );
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
@@ -44,8 +93,7 @@ function Tables() {
     };
   
     fetchTables();
-  }, []);
-  
+  }, []);  
 
   // Filter tables based on search query and category
   useEffect(() => {
@@ -442,6 +490,21 @@ function Tables() {
           </div>
         </div>
       )}
+
+      {/* Download the selected tables */}
+      <div className="flex container justify-center mx-auto px-4 py-4 text-right">
+        <button
+            onClick={() => console.log("Tablas seleccionadas:", selectedTables)}
+            disabled={selectedTables.length === 0}
+            className={`flex items-center ${
+              selectedTables.length > 0 
+                ? 'bg-[#36C78D] hover:bg-[#2da677]' 
+                : 'bg-gray-300 cursor-not-allowed'
+            } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
+        >
+          Descargar tablas
+        </button>
+      </div>
       
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">
