@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Thread-safe message store
 class MessageStore:
-    def __init__(self, max_size=1000):
+    def __init__(self, max_size=10000):
         self.messages = deque(maxlen=max_size)
         self.lock = Lock()
         self.sensor_city_map = {}  # Cache for sensor_id to city_id mapping
@@ -186,11 +186,6 @@ def get_sensor_data():
 def get_city_data(city_id):
     return jsonify(message_store.get_by_city(city_id))
 
-# Route to get data for a specific sensor
-@kafka_bp.route('/sensor/<sensor_id>', methods=['GET'])
-@cross_origin()
-def get_sensor_data(sensor_id):
-    return jsonify(message_store.get_by_sensor(sensor_id))
 
 # Health check endpoint
 @kafka_bp.route('/health', methods=['GET'])
