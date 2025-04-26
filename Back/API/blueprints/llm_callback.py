@@ -96,18 +96,29 @@ def generate():
     response = client.complete(messages=prompt, temperature=0, top_p=1, model=model)
     response_message = response.choices[0].message.content
 
-    match = re.search(r"```(?:\\w+\\n)?(.*?)```", response_message, re.DOTALL)
+    match = re.search(r"```(?:\w+\n)?(.*?)```", response_message, re.DOTALL)
+
     if not match:
         return jsonify({'error': 'No se encontró código SQL en la respuesta del modelo'}), 400
 
     sql_query = match.group(1).strip()
 
     db_data = query(sql_query)
+    
+    muestra_db_data = db_data[:3] + db_data[-3:]
+    num_registros = len(db_data)
+
+
 
     # Segunda llamada para graficar
     prompt.append(AssistantMessage(response_message))
-    prompt.append(UserMessage(f"Datos de la base: {db_data}. Genera un gráfico si corresponde."))
-
+    prompt.append(UserMessage(
+        f"Ejemplo de los datos: {muestra_db_data}. "
+        f"El conjunto completo contiene {num_registros} registros similares."
+        f"Si corresponde , genera un gráfico usando las herramientas disponibles.No todas las consultas requieren un gráfico , solo a las que les pueda ayudar al usuario a ver los datos visualmente. "
+    ))
+    
+    
     tools = [{
         "type": "function",
         "function": {
