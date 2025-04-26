@@ -15,7 +15,9 @@ function Home() {
     e.preventDefault();
     setIsSearching(true);
     // Here you would integrate with your LLM model
-    console.log('Searching for:', searchQuery);
+    //navigate to /chat page
+    navigate('/chat', { state: { query: searchQuery } });
+
     // Mock search - replace with actual implementation
     setTimeout(() => {
       setIsSearching(false);

@@ -176,58 +176,6 @@ def events_nearby():
         "results": results
     })
     
-@api_bp.route('/sensors/<operation>', methods=['GET'])
-def sensors_data(operation):
-    # Operaciones permitidas
-    allowed_ops = ['average', 'min', 'max']
-    if operation not in allowed_ops:
-        return jsonify({
-            "metadata": {
-                "status": "error",
-                "timestamp": datetime.now().isoformat() + "Z"
-            },
-            "error": f"Operación inválida: {operation}. Valores permitidos: {', '.join(allowed_ops)}"
-        }), 400
-
-    # Parámetros requeridos
-    city_id     = request.args.get('city_id')
-    sensor_type = request.args.get('sensor_type')
-    date_str    = request.args.get('date')
-
-    if not all([city_id, sensor_type, date_str]):
-        return jsonify({
-            "metadata": {
-                "status": "error",
-                "timestamp": datetime.now().isoformat() + "Z"
-            },
-            "error": "Faltan parámetros requeridos: city_id, sensor_type, date"
-        }), 400
-
-    # De momento devolvemos un JSON de ejemplo
-    return jsonify({
-        "metadata": {
-            "status": "success",
-            "timestamp": datetime.now().isoformat() + "Z"
-        },
-        "results": [
-            {
-                "metric": "pm10",
-                "unit": "µg/m³",
-                "value": 70.64
-            },
-            {
-                "metric": "co",
-                "unit": "ppm",
-                "value": 6.11
-            },
-            {
-                "metric": "co2",
-                "unit": "ppm",
-                "value": 509.84
-            }
-        ]
-    })
-    
 @api_bp.route('/ask', methods=['POST'])
 def ask_chatbot():
     data = request.get_json(force=True)
