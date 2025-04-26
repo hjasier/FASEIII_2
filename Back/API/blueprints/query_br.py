@@ -54,14 +54,3 @@ def expert_query():
             "status":  "error",
             "message": str(e).split('\n')[0]  # sólo la primera línea
         }), 400
-
-@q_br.route('/export', methods=['POST'])
-def export_tables():
-    # This function receives a list of table names and return a list of tables in the json format
-    payload = request.get_json(force=True, silent=True)
-    if not payload or 'tables' not in payload:
-        return jsonify({
-            "status": "error",
-            "message": "Debe enviar un JSON con la clave 'tables'."
-        }), 400
-    raw_query = payload['tables'].strip()

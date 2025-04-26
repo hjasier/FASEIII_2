@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify, render_template
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from datetime import datetime
 from .dao import cur
 from psycopg2 import sql, DatabaseError
 import re
+import re
+import io
+import csv
+import zipfile
+from flask import request, jsonify, send_file
+from psycopg2 import sql, DatabaseError
 
 database_bp = Blueprint('database', __name__)
 
@@ -91,7 +97,7 @@ def get_columns(table_name):
 
 @database_bp.route('/export', methods=['POST'])
 def export_tables():
-    # 1) Obtener y validar payload
+    # 1) Validar payload
     payload = request.get_json(force=True, silent=True)
     if not payload or 'tables' not in payload:
         return jsonify({
@@ -106,7 +112,7 @@ def export_tables():
             "message": "La clave 'tables' debe ser una lista de strings."
         }), 400
 
-    # 2) Asegurar nombres válidos
+    # 2) Validar nombres de tabla (evitar inyección)
     valid_name = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
     for tbl in tables:
         if not valid_name.match(tbl):
@@ -115,36 +121,52 @@ def export_tables():
                 "message": f"Nombre de tabla inválido: '{tbl}'."
             }), 400
 
-    exported = []
-    # 3) Exportar cada tabla
-    for tbl in tables:
-        try:
+    # 3) Recolectar datos de cada tabla
+    table_csvs = {}
+    try:
+        for tbl in tables:
             # Construir consulta segura
             query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(tbl))
             cur.execute(query)
 
-            # Columnas y filas
             cols = [col.name for col in cur.description]
             rows = cur.fetchall()
 
-            # Formatear como lista de dicts
-            data = [dict(zip(cols, row)) for row in rows]
+            # Generar CSV en memoria
+            sio = io.StringIO()
+            writer = csv.writer(sio)
+            writer.writerow(cols)
+            writer.writerows(rows)
+            table_csvs[tbl] = sio.getvalue()
+    except DatabaseError as e:
+        msg = str(e).split('\n')[0]
+        return jsonify({
+            "status": "error",
+            "message": f"Error al exportar tabla '{tbl}': {msg}"
+        }), 400
 
-            exported.append({
-                "table": tbl,
-                "rows": data
-            })
+    # 4) Si solo hay una tabla, enviar CSV directamente
+    if len(table_csvs) == 1:
+        tbl, content = next(iter(table_csvs.items()))
+        mem = io.BytesIO(content.encode('utf-8'))
+        mem.seek(0)
+        return send_file(
+            mem,
+            as_attachment=True,
+            download_name=f"{tbl}.csv",
+            mimetype="text/csv"
+        )
 
-        except DatabaseError as e:
-            # Capturar error por tabla y devolver al cliente
-            msg = str(e).split('\n')[0]
-            return jsonify({
-                "status": "error",
-                "message": f"Error al exportar tabla '{tbl}': {msg}"
-            }), 400
+    # 5) Si hay varias, empaquetar en ZIP
+    mem_zip = io.BytesIO()
+    with zipfile.ZipFile(mem_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for tbl, content in table_csvs.items():
+            zf.writestr(f"{tbl}.csv", content)
+    mem_zip.seek(0)
 
-    # 4) Responder con todas las tablas exportadas
-    return jsonify({
-        "status": "success",
-        "tables": exported
-    }), 200
+    return send_file(
+        mem_zip,
+        as_attachment=True,
+        download_name="export_tables.zip",
+        mimetype="application/zip"
+    )
