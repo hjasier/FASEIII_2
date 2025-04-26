@@ -18,68 +18,21 @@ function Tables() {
   const categories = ['all', 'salud', 'educación', 'transporte', 'seguridad', 'economía'];
 
   // Mock tables data - replace with actual API call
-  // useEffect(() => {
-  //   const fetchTables = async () => {
-  //     try {
-  //       const response = await fetch('http://127.0.0.1:5454/tables');
-  //       const data = await response.json();
-  //       if (response.ok) {
-  //         const fetchedTables = data.results.map((item, index) => ({
-  //           id: index + 1,
-  //           name: item.table,
-  //           category: 'uncategorized', // Default category
-  //           description: item.description ? item.description : `-`, // Use real description if available
-  //           columns: [] // Placeholder for columns (can fetch them later if needed)
-  //         }));
-  //         setTables(fetchedTables);
-  //         setFilteredTables(fetchedTables);
-  //       } else {
-  //         console.error('Error fetching tables:', data.error);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching tables:', error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  
-  //   fetchTables();
-  // }, []);
-
   useEffect(() => {
     const fetchTables = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5454/tables');
-        console.log(response)
         const data = await response.json();
+        console.log(data);
         if (response.ok) {
-          const fetchedTables = await Promise.all(
-            data.results.map(async (item, index) => {
-              let columns = [];
-              let columnCount = 0;
-              try {
-                const columnsResponse = await fetch(`http://127.0.0.1:5454/columns/${item.table}`);
-                const columnsData = await columnsResponse.json();
-                if (columnsResponse.ok) {
-                  columns = columnsData.results.map(col => col.column_name);
-                  columnCount = columnsData.results.length; // ✅ Correct way to count columns
-                } else {
-                  console.error(`Error fetching columns for table ${item.table}:`, columnsData.error);
-                }
-              } catch (err) {
-                console.error(`Error fetching columns for table ${item.table}:`, err);
-              }
-  
-              return {
-                id: index + 1,
-                name: item.table,
-                category: 'uncategorized',
-                description: item.description ? item.description : '-',
-                columns: columns,
-                columnCount: columnCount // ✅ Now this will be the real count
-              };
-            })
-          );
+          const fetchedTables = data.results.map((item, index) => ({
+            id: index + 1,
+            name: item.table,
+            category: 'uncategorized', // Default category
+            description: item.description ? item.description : '-', // Use real description if available
+            columns: [], // Placeholder for columns (can fetch them later if needed)
+            columnCount: item.column_count, // Add column_count to the table object
+          }));
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
@@ -93,7 +46,7 @@ function Tables() {
     };
   
     fetchTables();
-  }, []);  
+  }, []);
 
   // Filter tables based on search query and category
   useEffect(() => {
@@ -367,7 +320,7 @@ function Tables() {
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-500">
                           <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                            {table.columns.length} columnas
+                            {table.columnCount} columnas
                           </span>
                         </div>
                       </td>

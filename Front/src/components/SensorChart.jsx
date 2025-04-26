@@ -15,7 +15,7 @@ const SensorChart = () => {
     const fetchSensorData = async () => {
       try {
         // TODO
-        const response = await axios.get('http://localhost:5454/kafka/sensor-data');
+        const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/sensor-data');
         
         // Format data for the chart if needed
         const formattedData = response.data.map(item => ({
