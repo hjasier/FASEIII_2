@@ -18,18 +18,20 @@ def list_tables():
     """
     GET /api/greenlake-eval/tables
     Devuelve todas las tablas (BASE TABLES) del esquema público y otros esquemas de usuario,
-    incluyendo su descripción si existe.
+    incluyendo su descripción si existe, y el conteo de columnas.
     """
     try:
+        # Query to get table names, descriptions, and column counts
         cur.execute("""
             SELECT
                 nspname AS schema,
                 relname AS table,
-                obj_description(pg_class.oid) AS description
+                obj_description(pg_class.oid) AS description,
+                (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = relname) AS column_count
             FROM pg_class
             JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
             WHERE relkind = 'r' -- Only ordinary tables
-              AND nspname = 'public' -- Replace 'public' if needed
+              AND nspname = 'public' -- Only public schema
             ORDER BY nspname, relname;
         """)
         rows = cur.fetchall()
@@ -42,10 +44,10 @@ def list_tables():
             "error": f"Error al consultar la base de datos: {e}"
         }), 500
 
-    # Formateamos cada fila en un dict
+    # Format each row into a dictionary
     tables = [
-        {"schema": schema, "table": table, "description": description}
-        for schema, table, description in rows
+        {"schema": schema, "table": table, "description": description, "column_count": column_count}
+        for schema, table, description, column_count in rows
     ]
 
     return jsonify({
