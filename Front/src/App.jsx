@@ -7,6 +7,7 @@ import Tables from './pages/Tables';
 import Projects from './pages/Projects';
 import Project from './pages/Project';
 import SensorDashboard from './pages/SensorDashboard';
+import Realtime from './pages/Realtime';
 
 function App() {
   return (
@@ -45,6 +46,12 @@ function App() {
           }
         />
 
+
+        <Route path="/realtime" 
+          element={
+            <Realtime/>
+          } 
+        />
 
         {/* Ruta 404 */}
         <Route path='*' element={<h1 className='text-5xl text-white text-center mt-56'>404 Not Found :(</h1>} />
