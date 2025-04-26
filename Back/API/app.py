@@ -1,28 +1,51 @@
 # app.py
-from flask import Flask
-from flask_cors import CORS
-import dotenv
-from socketio_instance import socketio  
+from flask import Flask, request, jsonify, render_template
+from flask import Blueprint, request, jsonify
 
+app = Flask(__name__)  # crea la aplicación
 
-# Crear la aplicación Flask
-app = Flask(__name__)
-CORS(app)
+@app.route('/')
+def index():
+    return render_template('index.html')  # devuelve una plantilla
 
-# Initialize SocketIO with the Flask app
-socketio.init_app(app)
+api_bp = Blueprint('api', __name__, url_prefix='/api/greenlake-eval')
 
-# Importar rutas (blueprints)
-from api.Auth import auth_bp
-from api.WebSocketManager import websocket_bp
-from api.RouteGenerator import route_generator_bp
+@api_bp.route('/test', methods=['GET'])
+def test1():
+    nombre = request.args.get('nombre', 'mundo')
+    return jsonify({
+        "metadata": {
+            "status": "success",
+            "timestamp": "YYYY-MM-DDTHH:MM:SSZ"
+        },
+        "results": {
+            "status": "active"
+        }
+    })
 
-# Registrar blueprints
-app.register_blueprint(auth_bp)
-app.register_blueprint(websocket_bp)
-app.register_blueprint(route_generator_bp)
+@api_bp.route('/hospitals/nearby', methods=['GET'])
+def test2():
+    lat = request.args.get('lat', '79.8965515')
+    lon = request.args.get('lon', '-48.0003246')
+    radius = request.args.get('radius', '1000')
+    return jsonify({
+        "metadata": {
+            "status": "success",
+            "timestamp": "YYYY-MM-DDTHH:MM:SSZ"
+        },
+        "results": [
+            {
+                "id": "86cbe6d4-f169-4867-8672-8ec4609b6293",
+                "city_id": "371197f0-1599-4e3a-a0a7-c90da11bc5b6",
+                "name": "Hielo Alto Medical Center",
+                "longitude": float(lon),
+                "latitude": float(lat),
+                "distance_m": 0.0
+            }
+        ]
+    })
 
-# Ejecutar la aplicación con Flask-SocketIO
+app.register_blueprint(api_bp)
+    
 if __name__ == '__main__':
-    socketio.run(app, host="0.0.0.0", port=5000, use_reloader=False)
-
+    app.run(debug=True, host='0.0.0.0', port=5454)
