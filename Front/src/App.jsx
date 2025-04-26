@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import Home from './pages/Home';
 
 function App() {
   return (
@@ -15,13 +16,13 @@ function App() {
         {/* Rutas protegidas */}
         <Route path="/" element={
             <ProtectedRoute>
-              <AdminDashboard />
+              <></>
             </ProtectedRoute>
         } />
 
         <Route path="/form" element={
          
-            <UserDashboard />
+          <Home />
          
         } />
 
