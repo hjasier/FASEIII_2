@@ -443,6 +443,21 @@ function Tables() {
           </div>
         </div>
       )}
+
+      {/* Download the selected tables */}
+      <div className="flex container justify-center mx-auto px-4 py-4 text-right">
+        <button
+            onClick={() => console.log("Tablas seleccionadas:", selectedTables)}
+            disabled={selectedTables.length === 0}
+            className={`flex items-center ${
+              selectedTables.length > 0 
+                ? 'bg-[#36C78D] hover:bg-[#2da677]' 
+                : 'bg-gray-300 cursor-not-allowed'
+            } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
+        >
+          Descargar tablas
+        </button>
+      </div>
       
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">

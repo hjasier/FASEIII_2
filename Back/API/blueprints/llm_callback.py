@@ -5,7 +5,7 @@ import base64
 import io
 import json
 import re
-from ..schema import table_schema
+from .schema import table_schema
 from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 from azure.core.credentials import AzureKeyCredential
