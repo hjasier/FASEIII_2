@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Tables from './pages/Tables';
@@ -8,6 +8,20 @@ import Projects from './pages/Projects';
 import Project from './pages/Project';
 import SensorDashboard from './pages/SensorDashboard';
 import Realtime from './pages/Realtime';
+import Admin from './pages/Admin';
+import { useEffect, useState } from 'react';
+
+// Protected route component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('adminAuthenticated') === 'true';
+
+  if (!isAuthenticated) {
+    // Redirect to login with return URL
+    return <Navigate to="/login?returnUrl=/admin" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   return (
@@ -21,36 +35,44 @@ function App() {
           <Home />
         } />
 
-        <Route path="/tables" 
+        <Route path="/tables"
           element={
-            <Tables/>
-          } 
+            <Tables />
+          }
         />
 
         <Route path="/projects"
           element={
-            <Projects/>
+            <Projects />
           }
         />
 
         {/* Ruta para un proyecto específico con su ID */}
-        <Route path="/project/:projectId" 
+        <Route path="/project/:projectId"
           element={
-            <Project/>
-          } 
+            <Project />
+          }
         />
 
         <Route path="/sensor-chart"
           element={
-            <SensorDashboard/>
+            <SensorDashboard />
           }
         />
 
-
-        <Route path="/realtime" 
+        <Route path="/realtime"
           element={
-            <Realtime/>
-          } 
+            <Realtime />
+          }
+        />
+
+        {/* Admin route with protection */}
+        <Route path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
+          }
         />
 
         {/* Ruta 404 */}
