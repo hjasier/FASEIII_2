@@ -213,8 +213,7 @@ def list_tables():
         cur.execute("""
             SELECT table_schema, table_name
               FROM information_schema.tables
-             WHERE table_type = 'BASE TABLE'
-               AND table_schema NOT IN ('information_schema', 'pg_catalog')
+             WHERE table_type = 'BASE TABLE' AND table_schema = 'public'
              ORDER BY table_schema, table_name;
         """)
         rows = cur.fetchall()
@@ -240,3 +239,48 @@ def list_tables():
         },
         "results": tables
     })
+
+@api_bp.route('/columns/<table_name>', methods=['GET'])
+def get_columns(table_name):
+    """
+    GET /api/greenlake-eval/columns/<table_name>
+    Devuelve todas las columnas y sus tipos de datos de una tabla específica en el esquema público.
+    """
+    try:
+        cur.execute("""
+            SELECT column_name, data_type
+              FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = %s
+             ORDER BY ordinal_position;
+        """, (table_name,))
+        rows = cur.fetchall()
+
+    except Exception as e:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "timestamp": datetime.now().isoformat() + "Z"
+            },
+            "error": f"Error al consultar la base de datos: {e}"
+        }), 500
+
+    if not rows:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "timestamp": datetime.now().isoformat() + "Z"
+            },
+            "error": f"La tabla '{table_name}' no existe o no tiene columnas."
+        }), 404
+
+    # Formateamos en una lista de diccionarios {name, type}
+    columns = [{"column_name": name, "data_type": dtype} for name, dtype in rows]
+
+    return jsonify({
+        "metadata": {
+            "status": "success",
+            "timestamp": datetime.now().isoformat() + "Z"
+        },
+        "results": columns
+    })
+

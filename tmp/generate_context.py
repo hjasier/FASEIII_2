@@ -3,9 +3,9 @@ import psycopg2
 # Database connection parameters
 host = "10.10.76.241"
 port = 6565
-database = "greenlake_data"  # Replace with your database name
+database = "greenlake_data"  
 user = "admin"
-password = "overF!tHT25"  # Replace with your password
+password = "overF!tHT25"  
 
 try:
     # Establish the connection
