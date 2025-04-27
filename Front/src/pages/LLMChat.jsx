@@ -101,7 +101,7 @@ function LLMChat() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5454/generate', {
+      const response = await fetch('http://10.10.76.241:5454/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -135,7 +135,7 @@ function LLMChat() {
       // Update the streaming part in your fetchAnswerFromAPI function
 
       if (data.graph_base64) {
-        const response = await fetch('http://localhost:5454/explain-image', {
+        const response = await fetch('http://10.10.76.241:5454/explain-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

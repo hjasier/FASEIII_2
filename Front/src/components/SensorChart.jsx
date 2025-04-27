@@ -339,19 +339,19 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
         
         if (sensorId) {
           // Fetch data for a specific sensor
-          url = `http://localhost:5454/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`;
+          url = `http://10.10.76.241:5454/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`;
         } else if (activeSelectedCity) {
           // Fetch data for a selected city
-          url = `http://localhost:5454/api/greenlake-eval/sensors/data/${activeSelectedCity}`;
+          url = `http://10.10.76.241:5454/api/greenlake-eval/sensors/data/${activeSelectedCity}`;
         } else {
           // Fetch all data (fallback)
-          url = `http://localhost:5454/api/greenlake-eval/sensors/data`;
+          url = `http://10.10.76.241:5454/api/greenlake-eval/sensors/data`;
         }
 
         const response = await axios.get(url)
 
         // Process data based on sensor type
-        processDataForChart(response, sensorType);
+        processDataForChart(response.data, sensorType);
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch sensor data');

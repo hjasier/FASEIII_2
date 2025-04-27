@@ -26,7 +26,7 @@ function Tables() {
     const fetchTables = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:5454/tables', {
+        const response = await fetch('http://10.10.76.241:5454/tables', {
           method: 'GET'
         });
   
@@ -128,7 +128,7 @@ function Tables() {
 
     try {
       // API call to create a project
-      const response = await fetch('http://localhost:5454/projects/create', {
+      const response = await fetch('http://10.10.76.241:5454/projects/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ function Tables() {
     console.log(`Tables to download as ${type}:`, selectedNames);
 
     try {
-      const response = await fetch("http://localhost:5454/export",{
+      const response = await fetch("http://10.10.76.241:5454/export",{
         method: "POST",
         headers: {
           "-content-Type" : "application/json",
@@ -214,7 +214,7 @@ function Tables() {
     try {
       // Fetch columns for the selected table from the API
       // With Axios, the response is already parsed to JSON
-      const response = await fetch(`http://localhost:5454/columns/${tableName}`);
+      const response = await fetch(`http://10.10.76.241:5454/columns/${tableName}`);
       const data = await response.json();
 
       if (data && data.metadata && data.metadata.status === 'success') {

@@ -29,7 +29,7 @@ function Login() {
 
     try {
       // Simulating API call with timeout
-      const { data, status } = await axios.post("http://localhost:5454/auth/login", { "username": username, "password": password });
+      const { data, status } = await axios.post("http://10.10.76.241:5454/auth/login", { "username": username, "password": password });
       if (status === 200) {
         const returnUrl = getReturnUrl();
         localStorage.setItem('isAuthenticated', 'true');

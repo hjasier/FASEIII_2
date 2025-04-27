@@ -74,7 +74,7 @@ function CSVUpload() {
         setSuccess(null);
 
         try {
-            const response = await axios.post('http://localhost:5454/upload_csv', formData);
+            const response = await axios.post('http://10.10.76.241:5454/upload_csv', formData);
 
             console.log('Upload response:', response.data);
             setSuccess(`Archivo CSV cargado exitosamente a la tabla ${selectedTable}. Registros procesados: ${response.data.rows_inserted || 'N/A'}`);
