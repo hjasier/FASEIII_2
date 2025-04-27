@@ -24,3 +24,4 @@ confluent-kafka
 matplotlib
 openpyxl
 azure-ai-inference
+jwt

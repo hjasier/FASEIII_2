@@ -389,11 +389,13 @@
             }));
           }
       
-          console.log('Combined data:', combinedData);
-      
-          let chartData = [];
-      
+          console.log('Original data length:', combinedData.length);
+          
+          // Estrategia de muestreo de datos
+          let processedData = [];
+          
           if (chartType === 'pie') {
+            // Para gráficos de pastel, agregamos los datos por categoría
             const categoryMap = {};
             combinedData.forEach(row => {
               const category = row[xAxisColumn] || row[xAxisColumn.split('.').pop()];
@@ -405,13 +407,77 @@
                 }
               }
             });
-            chartData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+            processedData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+            
+            // Si hay muchas categorías, limitamos a las top 10-15
+            if (processedData.length > 15) {
+              processedData.sort((a, b) => b.value - a.value);
+              const otherCount = processedData.slice(14).reduce((sum, item) => sum + item.value, 0);
+              processedData = processedData.slice(0, 14);
+              if (otherCount > 0) {
+                processedData.push({ name: 'Otros', value: otherCount });
+              }
+            }
           } else {
-            chartData = combinedData.filter(row =>
+            // Filtramos filas con valores nulos o indefinidos
+            const filteredData = combinedData.filter(row =>
               (row[xAxisColumn] !== undefined && row[xAxisColumn] !== null) &&
               (row[yAxisColumn] !== undefined && row[yAxisColumn] !== null)
             );
+            
+            const MAX_DATA_POINTS = 100; // Límite razonable para gráficos de barras/líneas
+            
+            if (filteredData.length <= MAX_DATA_POINTS) {
+              processedData = filteredData;
+            } else {
+              // Estrategia 1: Muestreo uniforme (tomar puntos distribuidos uniformemente)
+              const samplingInterval = Math.ceil(filteredData.length / MAX_DATA_POINTS);
+              for (let i = 0; i < filteredData.length; i += samplingInterval) {
+                processedData.push(filteredData[i]);
+              }
+              
+              // Alternativa: Estrategia 2 - Agregación de datos por categoría X
+              // Esta es una mejor opción si los datos tienen sentido cuando se agrupan
+              if (processedData.length === 0) { // Si el muestreo falló por alguna razón
+                const aggregatedData = {};
+                filteredData.forEach(row => {
+                  const xValue = String(row[xAxisColumn] || row[xAxisColumn.split('.').pop()] || 'N/A');
+                  if (!aggregatedData[xValue]) {
+                    aggregatedData[xValue] = { 
+                      count: 0, 
+                      sum: 0,
+                      min: Number.MAX_VALUE,
+                      max: Number.MIN_VALUE
+                    };
+                  }
+                  
+                  const yValue = Number(row[yAxisColumn] || row[yAxisColumn.split('.').pop()] || 0);
+                  aggregatedData[xValue].count++;
+                  aggregatedData[xValue].sum += yValue;
+                  aggregatedData[xValue].min = Math.min(aggregatedData[xValue].min, yValue);
+                  aggregatedData[xValue].max = Math.max(aggregatedData[xValue].max, yValue);
+                });
+                
+                // Convertimos la agregación a un array y calculamos el promedio
+                processedData = Object.entries(aggregatedData).map(([xValue, stats]) => {
+                  const aggregatedRow = {};
+                  aggregatedRow[xAxisColumn] = xValue;
+                  aggregatedRow[yAxisColumn] = stats.sum / stats.count; // promedio
+                  return aggregatedRow;
+                });
+                
+                // Limitamos a MAX_DATA_POINTS si sigue siendo grande
+                if (processedData.length > MAX_DATA_POINTS) {
+                  processedData.sort((a, b) => 
+                    Number(b[yAxisColumn]) - Number(a[yAxisColumn])
+                  );
+                  processedData = processedData.slice(0, MAX_DATA_POINTS);
+                }
+              }
+            }
           }
+          
+          console.log('Processed data length for chart:', processedData.length);
       
           const position = { x: 100, y: 400 };
           if (reactFlowInstance) {
@@ -432,7 +498,7 @@
               xAxis: xAxisColumn,
               yAxis: yAxisColumn,
               tableName,
-              chartData,
+              chartData: processedData,
               onDelete: handleDeleteNode,
             }
           };
