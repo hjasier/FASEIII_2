@@ -34,7 +34,7 @@ function Home() {
   };
 
   const handleRealTimeData = () => {
-    navigate('/realtime');
+    navigate('/sensor-chart');
   };
 
   return (

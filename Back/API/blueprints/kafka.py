@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Thread-safe message store
 class MessageStore:
-    def __init__(self, max_size=100000):
+    def __init__(self, max_size=10000000):
         self.messages = deque(maxlen=max_size)
         self.lock = Lock()
         self.sensor_city_map = {}  # Cache for sensor_id to city_id mapping
@@ -92,7 +92,37 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         logger.error(f"Connection details: host={db_config['host']}, port={db_config['port']}, user={db_config['user']}, db={db_config['database']}")
         return None
-
+def get_city_id_from_name(city_name):
+    # Check cache first
+    city_id = message_store.get_cached_city(city_name)
+    if city_id is not None:
+        return city_id
+    
+    # Query database
+    conn = get_db_connection()
+    if not conn:
+        logger.error(f"Cannot get city_id for city {city_name}: Database connection failed")
+        return None
+    
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id FROM cities WHERE name = %s", (city_name,))
+        result = cursor.fetchone()
+        
+        if result:
+            city_id = result[0]
+            # Only cache valid city_ids
+            if city_id is not None:
+                message_store.cache_city(city_name, city_id)
+            return city_id
+        #logger.warning(f"No city_id found for city {city_name}")
+        return None
+    except Exception as e:
+        logger.error(f"Database query error when getting city_id for city {city_name}: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
 # Function to get city_id for a sensor_id
 def get_city_id(sensor_id):
     # Check cache first
@@ -203,6 +233,17 @@ def on_register(state):
 def get_data():
     return jsonify(message_store.get_all())
 
+@kafka_bp.route('/data/<city_name>', methods=['GET'])
+@cross_origin()
+def get_sensor_data_by_city(city_name):
+    # Get all messages for the specified city
+    messages = message_store.get_by_city(get_city_id_from_name(city_name))
+    
+    if not messages:
+        return jsonify({'error': f'No data found for city: {city_name}'}), 404
+    
+    # Return the filtered messages
+    return jsonify(messages)
 @kafka_bp.route('/cities', methods=['GET'])
 @cross_origin()
 def get_cities():
@@ -212,9 +253,9 @@ def get_cities():
         return jsonify({'error': 'Database connection failed'}), 500
     cursor = conn.cursor()
     # check how many sensors are in each city
-    cursor.execute("SELECT city_id, COUNT(*) FROM sensors GROUP BY city_id")
+    #cursor.execute("SELECT city_id COUNT(*) FROM sensors GROUP BY city_id")
     #city_sensor_count = cursor.fetchall()
-    #cursor.execute("SELECT DISTINCT name FROM cities WHERE id IN (SELECT DISTINCT city_id FROM sensors)")
+    cursor.execute("SELECT DISTINCT name FROM cities WHERE id IN (SELECT DISTINCT city_id FROM sensors)")
     cities = cursor.fetchall()
     cursor.close()
     conn.close()

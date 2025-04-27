@@ -6,51 +6,237 @@ import {
 } from 'recharts';
 import PropTypes from 'prop-types';
 
-// Color palette for different metrics
+// Color palette for different metrics (using Home.jsx color scheme)
 const colors = [
-  '#8884d8', '#82ca9d', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', 
+  '#36C78D', '#2da677', '#0088fe', '#ff7300', '#00c49f', '#ffbb28', 
   '#ff8042', '#a4de6c', '#d0ed57', '#83a6ed'
 ];
 
-const SensorChart = ({ sensorId, sensorType }) => {
+// Define thresholds for each metric to determine color scale
+const thresholds = {
+  // Air quality metrics (lower is better)
+  air: {
+    pm10: { good: 50, moderate: 100, poor: 200, units: 'µg/m³' },
+    co: { good: 4, moderate: 9, poor: 15, units: 'ppm' },
+    co2: { good: 400, moderate: 1000, poor: 2000, units: 'ppm' },
+    no2: { good: 40, moderate: 70, poor: 150, units: 'ppb' },
+    o3: { good: 50, moderate: 100, poor: 200, units: 'ppb' },
+    so2: { good: 20, moderate: 80, poor: 250, units: 'ppb' }
+  },
+  // Ambient conditions (ranges are better)
+  ambient: {
+    humidity: { good: [40, 60], moderate: [30, 70], poor: [0, 100], units: '%', type: 'range' },
+    temperature: { good: [18, 25], moderate: [10, 30], poor: [-10, 40], units: '°C', type: 'range' },
+    solar_radiation: { good: [100, 500], moderate: [50, 800], poor: [0, 1200], units: 'W/m²', type: 'range' }
+  },
+  // Traffic metrics (lower is better for most)
+  traffic: {
+    avg_speed: { good: 50, moderate: 30, poor: 10, units: 'km/h', type: 'higher' },
+    flow_rate: { good: 1000, moderate: 1500, poor: 2500, units: 'veh/h' },
+    occupancy: { good: 20, moderate: 50, poor: 80, units: '%' },
+    vehicle_density: { good: 20, moderate: 50, poor: 100, units: 'veh/km' },
+    congestion_index: { good: 0.2, moderate: 0.5, poor: 0.8, units: 'index' }
+  },
+  // Water quality (ranges for most)
+  water_quality: {
+    ph_level: { good: [6.5, 8.5], moderate: [6, 9], poor: [0, 14], units: 'pH', type: 'range' },
+    turbidity: { good: 1, moderate: 5, poor: 10, units: 'NTU' },
+    conductivity: { good: [200, 800], moderate: [100, 1500], poor: [0, 3000], units: 'µS/cm', type: 'range' },
+    dissolved_oxygen: { good: 8, moderate: 5, poor: 2, units: 'mg/L', type: 'higher' },
+    water_temperature: { good: [10, 20], moderate: [5, 25], poor: [0, 30], units: '°C', type: 'range' }
+  },
+  // Water usage (lower is better)
+  water_usage: {
+    usage_liters: { good: 100, moderate: 300, poor: 600, units: 'L' }
+  }
+};
+
+// Function to determine color based on value and thresholds
+const getMetricColor = (metric, value, sensorType) => {
+  if (!thresholds[sensorType] || !thresholds[sensorType][metric]) {
+    return '#36C78D'; // Default green if no thresholds defined
+  }
+  
+  const metricThreshold = thresholds[sensorType][metric];
+  
+  // Range type metrics (like humidity where a range is optimal)
+  if (metricThreshold.type === 'range') {
+    if (value >= metricThreshold.good[0] && value <= metricThreshold.good[1]) {
+      return '#36C78D'; // Good - green
+    } else if (value >= metricThreshold.moderate[0] && value <= metricThreshold.moderate[1]) {
+      return '#FFA500'; // Moderate - orange
+    } else {
+      return '#FF4D4D'; // Poor - red
+    }
+  }
+  // Higher is better metrics
+  else if (metricThreshold.type === 'higher') {
+    if (value >= metricThreshold.good) {
+      return '#36C78D'; // Good - green
+    } else if (value >= metricThreshold.moderate) {
+      return '#FFA500'; // Moderate - orange
+    } else {
+      return '#FF4D4D'; // Poor - red
+    }
+  }
+  // Default: lower is better metrics
+  else {
+    if (value <= metricThreshold.good) {
+      return '#36C78D'; // Good - green
+    } else if (value <= metricThreshold.moderate) {
+      return '#FFA500'; // Moderate - orange
+    } else {
+      return '#FF4D4D'; // Poor - red
+    }
+  }
+};
+
+// Component to display current values
+const CurrentValueView = ({ metrics, sensorType, latestData }) => {
+  if (!latestData || Object.keys(latestData).length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64 border border-gray-200 rounded-lg bg-gray-50">
+        <p className="text-gray-500">No hay datos actuales disponibles</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+      {metrics.map(metric => {
+        const value = latestData[metric];
+        if (value === undefined) return null;
+        
+        const color = getMetricColor(metric, value, sensorType);
+        const metricThreshold = thresholds[sensorType]?.[metric];
+        const units = metricThreshold?.units || '';
+        
+        return (
+          <div 
+            key={metric} 
+            className="p-4 rounded-lg shadow-sm border flex flex-col items-center justify-center"
+            style={{ borderColor: color }}
+          >
+            <h3 className="text-lg font-medium text-gray-700 mb-1">{metric.replace(/_/g, ' ')}</h3>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-bold" style={{ color }}>{value.toFixed(1)}</span>
+              <span className="ml-1 text-gray-500">{units}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities }) => {
   const [sensorData, setSensorData] = useState([]);
   const [formattedData, setFormattedData] = useState([]);
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [chartTitle, setChartTitle] = useState('Sensor Data');
+  const [viewMode, setViewMode] = useState('history'); // 'history' or 'current'
   // Add a ref to track the existing data points by ID
   const processedDataPoints = useRef(new Set());
   // Max number of points to display
   const MAX_DISPLAY_POINTS = 50;
+  // City selection state - use internal state if props are not provided
+  const [localCities, setLocalCities] = useState([]);
+  const [localSelectedCity, setLocalSelectedCity] = useState('');
 
   // Map sensor types to human-readable titles
   const sensorTitles = {
-    'air': 'Air Quality Metrics',
-    'ambient': 'Ambient Weather Conditions',
-    'traffic': 'Traffic Monitoring Data',
-    'water_quality': 'Water Quality Parameters',
-    'water_usage': 'Water Consumption Metrics'
+    'air': 'Calidad del Aire',
+    'ambient': 'Condiciones Ambientales',
+    'traffic': 'Monitoreo de Tráfico',
+    'water_quality': 'Calidad del Agua',
+    'water_usage': 'Consumo de Agua'
   };
+
+  // Determine if we're using local state or props for city selection
+  const usingLocalCityState = !onCityChange || selectedCity === undefined;
+  const activeCities = usingLocalCityState ? localCities : cities;
+  const activeSelectedCity = usingLocalCityState ? localSelectedCity : selectedCity;
+
+  // Get the latest data point for each metric
+  const getLatestValues = () => {
+    if (formattedData.length === 0) return {};
+    
+    // Get the most recent data point
+    const latestDataPoint = [...formattedData].sort((a, b) => 
+      new Date(b.event_time) - new Date(a.event_time)
+    )[0];
+    
+    // Extract only the metric values
+    const latestValues = {};
+    metrics.forEach(metric => {
+      if (latestDataPoint[metric] !== undefined) {
+        latestValues[metric] = latestDataPoint[metric];
+      }
+    });
+    
+    return latestValues;
+  };
+
+  // Fetch the list of cities if we're using local state
+  useEffect(() => {
+    if (usingLocalCityState) {
+      const fetchCities = async () => {
+        try {
+          const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
+          // API returns cities as an array of arrays like [["City1"], ["City2"]]
+          // Convert to a simple array of city names
+          const cityNames = response.data.map(city => city[0]);
+          setLocalCities(cityNames);
+          
+          // Set the first city as default if there's no selected city
+          if (cityNames.length > 0 && !localSelectedCity) {
+            setLocalSelectedCity(cityNames[0]);
+          }
+        } catch (err) {
+          console.error('Failed to fetch cities:', err);
+          setError('Failed to fetch cities');
+        }
+      };
+      
+      fetchCities();
+    }
+  }, [usingLocalCityState]);
 
   useEffect(() => {
     // Set chart title based on sensor type
     if (sensorType && sensorTitles[sensorType]) {
-      setChartTitle(sensorTitles[sensorType]);
+      setChartTitle(`${sensorTitles[sensorType]}${activeSelectedCity ? ` - ${activeSelectedCity}` : ''}`);
+    } else if (activeSelectedCity) {
+      setChartTitle(`Datos de Sensores - ${activeSelectedCity}`);
     }
     
-    // Reset processed data points when sensor ID or type changes
+    // Reset processed data points when sensor ID, type, or city changes
     processedDataPoints.current = new Set();
     setFormattedData([]);
     setSensorData([]);
     
     // Function to fetch sensor data
     const fetchSensorData = async () => {
+      if (!activeSelectedCity && !sensorId) {
+        return; // Don't fetch if we don't have a city or sensor ID
+      }
+      
       try {
         setLoading(true);
-        const url = sensorId 
-          ? `http://localhost:5454/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`
-          : `http://localhost:5454/api/greenlake-eval/sensors/data`;
+        let url;
+        
+        if (sensorId) {
+          // Fetch data for a specific sensor
+          url = `http://localhost:5454/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`;
+        } else if (activeSelectedCity) {
+          // Fetch data for a selected city
+          url = `http://localhost:5454/api/greenlake-eval/sensors/data/${activeSelectedCity}`;
+        } else {
+          // Fetch all data (fallback)
+          url = `http://localhost:5454/api/greenlake-eval/sensors/data`;
+        }
         
         const response = await axios.get(url);
         
@@ -66,7 +252,7 @@ const SensorChart = ({ sensorId, sensorType }) => {
 
     // Process raw data into chart-friendly format
     const processDataForChart = (data, type) => {
-      // If we have an array of messages (from general endpoint)
+      // If we have an array of messages (from general endpoint or city endpoint)
       if (Array.isArray(data)) {
         // Filter by sensor type if specified
         const filteredData = type 
@@ -222,50 +408,178 @@ const SensorChart = ({ sensorId, sensorType }) => {
     
     // Clean up on component unmount
     return () => clearInterval(intervalId);
-  }, [sensorId, sensorType]);
+  }, [sensorId, sensorType, activeSelectedCity]);
 
-  if (loading && formattedData.length === 0) return <div>Loading sensor data...</div>;
-  if (error && formattedData.length === 0) return <div className="error-message">{error}</div>;
-  if (formattedData.length === 0) return <div>No sensor data available</div>;
+  // Handle city selection change
+  const handleCityChange = (e) => {
+    const newCity = e.target.value;
+    if (usingLocalCityState) {
+      setLocalSelectedCity(newCity);
+    } else {
+      onCityChange(newCity);
+    }
+    // Reset data when city changes
+    processedDataPoints.current = new Set();
+    setFormattedData([]);
+    setSensorData([]);
+  };
+
+  // Toggle between history and current view
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'history' ? 'current' : 'history');
+  };
+
+  if (loading && formattedData.length === 0) 
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex justify-center items-center h-64">
+        <div className="flex items-center">
+          <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-[#36C78D]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="text-gray-600 text-lg">Cargando datos de sensores...</span>
+        </div>
+      </div>
+    );
+  
+  if (error && formattedData.length === 0) 
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex justify-center items-center h-64">
+        <div className="text-red-500 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+
+  const latestValues = getLatestValues();
 
   return (
-    <div style={{ width: '100%', height: 400, marginBottom: '2rem' }}>
-      <h2>{chartTitle} {loading && <small>(Loading new data...)</small>}</h2>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={formattedData}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          {metrics.map((metric, index) => (
-            <Line 
-              key={metric}
-              type="monotone" 
-              dataKey={metric} 
-              name={metric.replace(/_/g, ' ')}
-              stroke={colors[index % colors.length]} 
-              activeDot={{ r: 8 }} 
-              isAnimationActive={false} // Disable animation for smoother updates
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow mb-8">
+      {/* Header with controls */}
+      <div className="flex flex-wrap justify-between items-center mb-4">
+        <div>
+          {/* City selection if using local state */}
+          {usingLocalCityState && (
+            <div className="mb-4 flex items-center">
+              <label htmlFor="city-select" className="mr-3 text-gray-700 font-medium">Ciudad:</label>
+              <select 
+                id="city-select"
+                value={activeSelectedCity} 
+                onChange={handleCityChange}
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
+              >
+                {activeCities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          <h2 className="text-xl font-bold text-gray-800">{chartTitle}</h2>
+        </div>
+        
+        {/* View mode toggle */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={toggleViewMode}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'history' 
+                ? 'bg-[#36C78D] text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Histórico
+          </button>
+          <button 
+            onClick={toggleViewMode}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'current' 
+                ? 'bg-[#36C78D] text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Valores Actuales
+          </button>
+          
+          {loading && (
+            <div className="flex items-center text-sm text-gray-500 ml-2">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#36C78D]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Actualizando datos...
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Content based on view mode */}
+      {formattedData.length === 0 ? (
+        <div className="flex justify-center items-center h-64 border border-gray-200 rounded-lg bg-gray-50">
+          <p className="text-gray-500">No hay datos disponibles para esta ciudad/tipo de sensor</p>
+        </div>
+      ) : viewMode === 'history' ? (
+        // Historical view with line charts
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={formattedData}
+              margin={{
+                top: 10,
+                right: 30,
+                left: 20,
+                bottom: 10,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="timestamp" tick={{ fill: '#4B5563' }} />
+              <YAxis tick={{ fill: '#4B5563' }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  borderRadius: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+                  border: '1px solid #E5E7EB' 
+                }} 
+              />
+              <Legend />
+              {metrics.map((metric, index) => (
+                <Line 
+                  key={metric}
+                  type="monotone" 
+                  dataKey={metric} 
+                  name={metric.replace(/_/g, ' ')}
+                  stroke={colors[index % colors.length]} 
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 6 }} 
+                  isAnimationActive={false} 
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        // Current values view
+        <CurrentValueView 
+          metrics={metrics} 
+          sensorType={sensorType} 
+          latestData={latestValues} 
+        />
+      )}
     </div>
   );
 };
 
 SensorChart.propTypes = {
   sensorId: PropTypes.string,
-  sensorType: PropTypes.oneOf(['air', 'ambient', 'traffic', 'water_quality', 'water_usage'])
+  sensorType: PropTypes.oneOf(['air', 'ambient', 'traffic', 'water_quality', 'water_usage']),
+  selectedCity: PropTypes.string,
+  onCityChange: PropTypes.func,
+  cities: PropTypes.arrayOf(PropTypes.string)
 };
 
 export default SensorChart;
