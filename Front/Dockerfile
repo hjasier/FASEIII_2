@@ -13,7 +13,7 @@ RUN npm install -g serve
 COPY . .
 
 # Build with the environment variable
-ARG VITE_API_URL=http://10.10.76.121:5454
+ARG VITE_API_URL=http://10.10.76.241:5454
 ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
