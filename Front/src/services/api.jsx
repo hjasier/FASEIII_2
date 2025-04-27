@@ -31,7 +31,8 @@ function getApiUrl() {
 console.log('🌐 App running at:', window.location.href);
 
 // Get API URL using the function
-const API_URL = getApiUrl();
+//const API_URL = getApiUrl();
+const API_URL = `10.10.76.241:5454`;
 
 // IMPORTANT: Log the final API URL for debugging
 console.log('🔧 Using API URL:', API_URL);
