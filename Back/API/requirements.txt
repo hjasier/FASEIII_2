@@ -26,3 +26,4 @@ openpyxl
 azure-ai-inference
 jwt
 PyJWT
+flask_jwt_extended

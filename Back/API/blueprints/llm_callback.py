@@ -94,11 +94,13 @@ def generar_grafico(tipo_grafico, x, y, titulo="Gráfico"):
     return img_base64
 
 
-def generate_grafico_expert(tipo_grafico, x, y):
+def generate_grafico_expert(tipo_grafico, x, y,title,tableName):
     data = {
         "chartType": tipo_grafico,
-        "x": x,
-        "y": y
+        "xAxis": x,
+        "yAxis": y,
+        "title": title,
+        "tableName": tableName
     }
     return data
 
@@ -243,48 +245,22 @@ def explain_image():
 # Main endpoint
 @llm_bp.route('/expert-generate', methods=['POST'])
 def generate_expert():
-    user_question = request.json.get('question')
+    user_question = request.json.get('message')
     history = request.json.get('history')
     
     prompt = [
-        {"role": "system", "content": f"Eres un asistente que genera graficos o queries SQL basadas en el schema: {table_schema} , CONTEXTO DEL HISTORIAL : {history}"
+        {"role": "system", "content": f"""
+         Eres un asistente que genera graficos o queries SQL basadas en el schema: {table_schema}
+         CONTEXTO DEL HISTORIAL : {history}
+         TIENES 2 FUNCIONES , 1 GENERAR CODIGO SQL CUANDO EL USUAIRO LO PIDA , 2 GENERAR GRAFICOS CUANDO EL USUARIO LO PIDA
+         SI LE USUARIO PIDE UNA QUERY SQL , GENERA UNA QUERY SQL Y DEVUELVE EL RESULTADO DIRECTAMENTE 
+         SI EL USUARIO PIDE UN GRAFICO LLAMA A LA FUNCIÓN GENERATE_GRAFICO_EXPERT Y ESTO DEVOLVERÁ UN JSON CON LOS DATOS QUE SE NECESITAN PARA GENERAR EL GRAFICO 
+         
+         """
+         
         },
         {"role": "user", "content": user_question}
         ]
-
-    response = client.chat.completions.create(
-    model="gpt-4-turbo",  # o el que uses
-    messages=prompt,
-    temperature=0,
-    top_p=1
-    )
-
-    response_message = response.choices[0].message.content
-
-    
-    match = re.search(r"```(?:\w+\n)?(.*?)```", response_message, re.DOTALL)
-
-    if not match:
-        return jsonify({'error': 'No se encontró código SQL en la respuesta del modelo'}), 400
-
-    sql_query = match.group(1).strip()
-
-    db_data = query(sql_query)
-    
-    muestra_db_data = db_data[:3] + db_data[-3:]
-    num_registros = len(db_data)
-
-
-
-    # Segunda llamada para graficar
-    prompt.append(AssistantMessage(response_message))
-    prompt.append(UserMessage(
-        f"Ejemplo de los datos: {muestra_db_data}. "
-        f"El conjunto completo contiene {num_registros} registros similares. "
-        f"Si corresponde, genera un gráfico usando las herramientas disponibles. "
-        f"Además, siempre explica en texto qué muestra el gráfico o los datos, para ayudar al usuario a entenderlos. Usa markdown para formatear la respuesta."
-    ))
-    
     
     tools = [{
         "type": "function",
@@ -294,13 +270,42 @@ def generate_expert():
                 "type": "object",
                 "properties": {
                     "tipo_grafico": {"type": "string", "enum": ["bar", "line", "scatter", "pie"]},
-                    "x": {"type": "array", "items": {"type": "string"}},
-                    "y": {"type": "array", "items": {"type": "number"}}
+                    "x": {"type": "string"},
+                    "y": {"type": "string"},
+                    "title": {"type": "string"},
+                    "tableName": {"type": "string"}
+                    
+                    
                 },
-                "required": ["tipo_grafico", "x"]
+                "required": ["tipo_grafico", "x", "y","title","tableName"]
+                
             }
         }
     }]
+
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=prompt,
+        temperature=0,
+        tools=tools,
+        top_p=1
+    )
+
+    response_message = response.choices[0].message.content
+    
+    
+    if response_message:
+        match = re.search(r"```(?:\w+\n)?(.*?)```", response_message, re.DOTALL)
+
+        if match:
+            sql_query = match.group(1).strip()
+            return jsonify({
+                'type': 'sql_query',
+                'query': sql_query
+            })
+            
+        
+
 
     response = client.chat.completions.create(
         model=model,
@@ -318,7 +323,9 @@ def generate_expert():
         graph_data = generate_grafico_expert(
             tipo_grafico=arguments['tipo_grafico'],
             x=arguments['x'],
-            y=arguments['y']
+            y=arguments['y'],
+            title=arguments['title'],
+            tableName=arguments['tableName']
         )
 
         return jsonify({
@@ -327,8 +334,7 @@ def generate_expert():
         })
 
     return jsonify({
-        'type': 'sql_query',
-        'query': sql_query
+        'type': 'text',
+        'message': message.content
     })
-    
 

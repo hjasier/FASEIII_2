@@ -67,14 +67,21 @@ const ChatBox = ({ onExecuteQuery, onCreateChart, tables, isOpen, onToggle }) =>
           { 
             role: 'assistant', 
             content: `Puedo generar un ${data.data.chartType === 'bar' ? 'gráfico de barras' : 
-                                         data.data.chartType === 'line' ? 'gráfico de líneas' : 
-                                         'gráfico circular'} utilizando la tabla "${data.data.tableName}" con ${data.data.chartType !== 'pie' ? 
-                                         `"${data.data.xAxis}" en el eje X y "${data.data.yAxis}" en el eje Y` : 
-                                         `"${data.data.xAxis}" como categoría`}. Estoy generando el gráfico...`,
+                         data.data.chartType === 'line' ? 'gráfico de líneas' : 
+                         data.data.chartType === 'scatter' ? 'gráfico de dispersión' :
+                         data.data.chartType === 'pie' ? 'gráfico circular' : 'gráfico'}
+                          con ${data.data.chartType !== 'pie' ? 
+                         `"${data.data.xAxis}" en el eje X y "${data.data.yAxis}" en el eje Y` : 
+                         `"${data.data.xAxis}" como categoría`}. 
+                         Título: "${data.data.title}"
+                         Tabla: "${data.data.tableName}"
+                         ¿Quieres generar el gráfico?`,
             chartSuggestion: {
               chartType: data.data.chartType,
               xAxis: data.data.xAxis,
-              yAxis: data.data.yAxis
+              yAxis: data.data.yAxis,
+              title: data.data.title,
+              tableName: data.data.tableName,
             }
           }
         ]);
@@ -105,6 +112,7 @@ const ChatBox = ({ onExecuteQuery, onCreateChart, tables, isOpen, onToggle }) =>
   };
 
   const handleCreateChart = (chartConfig) => {
+    console.log('Creating chart with config:', chartConfig);
     onCreateChart(chartConfig);
     setMessages(prev => [
       ...prev, 
