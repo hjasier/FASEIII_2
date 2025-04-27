@@ -3,16 +3,17 @@ from datetime import datetime
 from .dao import cur, conn
 from psycopg2 import sql, DatabaseError
 import os
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Create blueprint for project management
 projects_bp = Blueprint('projects', __name__)
 
 @projects_bp.route('/create', methods=['POST'])
-def create_project(current_user):
-    """
-    POST /projects/create
-    Create a new project for the authenticated user
-    """
+@jwt_required()
+def create_project():
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
+    
     # Get request data
     data = request.get_json()
     
@@ -24,9 +25,22 @@ def create_project(current_user):
         }), 400
     
     project_name = data['project_name']
-    user_id = current_user['user_id']
+    project_description = data.get('description', '')  # Get description, default to empty string
+    tables = data.get('tables', [])  # Get tables list
     
     try:
+        # First, verify the user exists in your database
+        cur.execute("SELECT user_id FROM users.user_accounts WHERE user_id = %s", (current_user_id,))
+        user_result = cur.fetchone()
+        
+        if not user_result:
+            return jsonify({
+                "status": "error",
+                "message": "User not found"
+            }), 404
+            
+        user_id = user_result[0]
+        
         # Check if a project with this name already exists for the user
         cur.execute(
             "SELECT project_id FROM users.projects WHERE user_id = %s AND project_name = %s",
@@ -35,36 +49,31 @@ def create_project(current_user):
         if cur.fetchone():
             return jsonify({
                 "status": "error",
-                "message": f"A project named '{project_name}' already exists for this user"
+                "message": "A project with this name already exists"
             }), 409
         
-        # Create new project
+        # Create new project with description
         cur.execute(
-            "INSERT INTO users.projects (user_id, project_name) VALUES (%s, %s) RETURNING project_id",
-            (user_id, project_name)
+            "INSERT INTO users.projects (user_id, project_name, description) VALUES (%s, %s, %s) RETURNING project_id",
+            (user_id, project_name, project_description)
         )
         project_id = cur.fetchone()[0]
         
-        # Add tables to the project if provided
-        tables = data.get('tables', [])
-        if tables:
-            for table_name in tables:
-                cur.execute(
-                    "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
-                    (project_id, table_name)
-                )
+        # Add tables to the project
+        for table_name in tables:
+            cur.execute(
+                "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
+                (project_id, table_name)
+            )
         
-        # Commit the transaction
         conn.commit()
         
         return jsonify({
             "status": "success",
             "message": "Project created successfully",
-            "project_id": project_id,
-            "project_name": project_name,
-            "tables_added": len(tables)
+            "project_id": project_id
         }), 201
-    
+        
     except DatabaseError as e:
         conn.rollback()
         return jsonify({

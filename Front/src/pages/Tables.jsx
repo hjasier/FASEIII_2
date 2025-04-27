@@ -102,21 +102,57 @@ function Tables() {
     });
   };
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (projectName.trim() === '' || selectedTables.length === 0) {
       alert('Por favor, ingrese un nombre para el proyecto y seleccione al menos una tabla.');
       return;
     }
 
-    // Here you would save the project to your backend
-    console.log('Creating project:', {
-      name: projectName,
-      description: projectDescription,
-      tables: selectedTables.map(id => tables.find(table => table.id === id))
-    });
+    // Get the table names from the selected table IDs
+    const selectedTableNames = selectedTables.map(id => 
+      tables.find(table => table.id === id).name
+    );
+    
+    // Get auth token from localStorage
+    const authToken = localStorage.getItem('authToken');
+    
+    if (!authToken) {
+      alert('Sesión no válida. Por favor inicie sesión nuevamente.');
+      navigate('/login-user');
+      return;
+    }
 
-    // Navigate to the projects page or the new project's page
-    navigate('/projects');
+    try {
+      // API call to create a project
+      const response = await fetch('http://127.0.0.1:5454/projects/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`  // Add the auth token
+        },
+        body: JSON.stringify({
+          project_name: projectName,
+          description: projectDescription,
+          tables: selectedTableNames
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      console.log(data);
+
+      if (response.ok) {
+        alert(`Proyecto "${projectName}" creado con éxito`);
+        navigate('/projects');
+      } else {
+        alert(`Error al crear el proyecto: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error al crear el proyecto:', error);
+      alert('Ocurrió un error al intentar crear el proyecto. Por favor, inténtelo de nuevo.');
+    } finally {
+      setShowCreateProject(false);
+    }
   };
 
   const handleBack = () => {
