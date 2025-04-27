@@ -11,11 +11,15 @@ function Tables() {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [exportType, setExportType] = useState("csv");
+  const [showOptions, setShowOptions] = useState(false);
+  const [showResultPreview, setShowResultPreview] = useState(false);
+  const [queryResult, setQueryResult] = useState(null);
   
   const navigate = useNavigate();
 
   // Mock categories for filtering
-  const categories = ['all', 'salud', 'educación', 'transporte', 'seguridad', 'economía'];
+  const categories = ['all', 'city', 'infrastructure', 'people', 'sensors', 'state', 'misc'];
 
   // Mock tables data - replace with actual API call
   useEffect(() => {
@@ -25,14 +29,33 @@ function Tables() {
         const data = await response.json();
         console.log(data);
         if (response.ok) {
-          const fetchedTables = data.results.map((item, index) => ({
-            id: index + 1,
-            name: item.table,
-            category: 'uncategorized', // Default category
-            description: item.description ? item.description : '-', // Use real description if available
-            columns: [], // Placeholder for columns (can fetch them later if needed)
-            columnCount: item.column_count, // Add column_count to the table object
-          }));
+          const fetchedTables = data.results.map((item, index) => {
+            // Determine category based on table name
+            const tableName = item.table.toLowerCase();
+            let assignedCategory = 'misc'; // Default to misc
+            
+            // Check if table name contains any category string (excluding 'all')
+            for (const category of categories) {
+              if (category !== 'all' && tableName.includes(category)) {
+                assignedCategory = category;
+                break; // Use the first matching category
+              }
+              
+            }
+            
+            if (tableName.includes("cit")) {
+              assignedCategory = "city";
+            }
+
+            return {
+              id: index + 1,
+              name: item.table,
+              category: assignedCategory,
+              description: item.description ? item.description : '-',
+              columns: [],
+              columnCount: item.column_count,
+            };
+          });
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
@@ -99,6 +122,56 @@ function Tables() {
   const handleBack = () => {
     navigate('/');
   };
+
+
+  const handleExport = async (type) => {
+    if (selectedTables.length === 0) return;
+  
+    // adjust the -1 if your selectedTables are 1-based; remove -1 if they're 0-based
+    const selectedNames = selectedTables.map(i => tables[i - 1].name);
+    console.log(`Tables to download as ${type}:`, selectedNames);
+  
+    try {
+      const res = await fetch("http://127.0.0.1:5454/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          tables: selectedNames,
+          type: type
+        }),
+      });
+  
+      if (!res.ok) {
+        // try to pull the JSON error message
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Error al exportar tablas");
+      }
+  
+      const blob = await res.blob();
+      // figure out the filename from Content-Disposition, or fallback:
+      let filename = `export_tables.${type}.zip`;
+      const cd = res.headers.get("content-disposition");
+      if (cd) {
+        const m = cd.match(/filename\*?=['"]?(?:UTF-8'')?(.+?)['"]?(;|$)/);
+        if (m) filename = decodeURIComponent(m[1]);
+      }
+  
+      // download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
   
   // Generate category color classes based on category name
   const getCategoryColorClass = (category) => {
@@ -111,6 +184,36 @@ function Tables() {
     };
     
     return categoryColors[category] || 'bg-green-50 text-green-700';
+  };
+
+  const handlePreviewClick = async (tableName) => {
+    try {
+      // Fetch columns for the selected table from the API
+      const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
+      const data = await response.json();
+  
+      if (data.metadata.status === 'success') {
+        // Log the retrieved column data to the console for debugging
+        console.log('Retrieved columns data:', data.results);
+  
+        // Set the table name and columns to display
+        setShowResultPreview(true);
+        setQueryResult({
+          id: tableName,
+          name: tableName,
+          columns: data.results.map(col => ({
+            name: col.column_name,
+            type: col.data_type,
+          })),
+        });
+      } else {
+        console.error('Error fetching columns:', data.metadata.message);
+        alert('Error fetching table columns');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred while fetching table columns');
+    }
   };
 
   return (
@@ -326,10 +429,7 @@ function Tables() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button 
-                          onClick={() => {
-                            // Preview table data - should open a modal or navigate to table preview
-                            console.log('Preview table:', table);
-                          }}
+                          onClick={() => handlePreviewClick(table.name)}  // Adapted to trigger handlePreviewClick with the table name
                           className="text-[#36C78D] hover:text-[#2da677] mr-3 flex items-center"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -350,7 +450,7 @@ function Tables() {
       
       {/* Create Project Modal */}
       {showCreateProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
+        <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center mb-6 pb-3 border-b border-gray-200">
               <div className="w-8 h-8 bg-[#36C78D] rounded-full flex items-center justify-center mr-2 text-white">
@@ -446,20 +546,169 @@ function Tables() {
 
       {/* Download the selected tables */}
       <div className="flex container justify-center mx-auto px-4 py-4 text-right">
-        <button
-            onClick={() => console.log("Tablas seleccionadas:", selectedTables)}
+        {/* Export options dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (selectedTables.length === 0) return;
+              setShowOptions(!showOptions);
+            }}
             disabled={selectedTables.length === 0}
             className={`flex items-center ${
               selectedTables.length > 0 
                 ? 'bg-[#36C78D] hover:bg-[#2da677]' 
                 : 'bg-gray-300 cursor-not-allowed'
             } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
-        >
-          Descargar tablas
-        </button>
+          >
+            Descargar tablas
+            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {/* Options popup */}
+          {showOptions && selectedTables.length > 0 && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+              <ul className="py-1">
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("csv");
+                    setShowOptions(false);
+                    await handleExport("csv");
+                  }}
+                >
+                  <span className="mr-2">CSV</span>
+                  {exportType === "csv" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("json");
+                    setShowOptions(false);
+                    await handleExport("json");
+                  }}
+                >
+                  <span className="mr-2">JSON</span>
+                  {exportType === "json" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+                <li 
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                  onClick={async () => {
+                    setExportType("xlsx");
+                    setShowOptions(false);
+                    await handleExport("xlsx");
+                  }}
+                >
+                  <span className="mr-2">Excel (XLSX)</span>
+                  {exportType === "xlsx" && (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-      
+
       {/* Footer */}
+      
+      {/* Table Preview Modal - Add this code here */}
+        {showResultPreview && queryResult && (
+          <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6">
+          <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-[#36C78D] rounded-full flex items-center justify-center mr-2 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+            </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Vista Previa: {queryResult.name}</h2>
+            </div>
+            <button 
+              onClick={() => setShowResultPreview(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Estructura de la Tabla</h3>
+            <div className="bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
+              {queryResult.columns.length > 0 ? (
+            <div className="max-h-96 overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nombre de Columna
+                </th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tipo de Dato
+                </th>
+              </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+              {queryResult.columns.map((column, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                {index + 1}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                <div className="font-medium text-gray-900">{column.name}</div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700">
+                  {column.type}
+                </span>
+                  </td>
+                </tr>
+              ))}
+                </tbody>
+              </table>
+            </div>
+              ) : (
+            <div className="p-4 text-center text-gray-500">
+              No hay columnas disponibles para esta tabla.
+            </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Total: {queryResult.columns.length} columnas
+            </p>
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
+            <button
+              onClick={() => setShowResultPreview(false)}
+              className="px-4 py-2 bg-[#36C78D] hover:bg-[#2da677] text-white rounded-md transition-colors flex items-center shadow-sm hover:shadow"
+            >
+              Cerrar
+            </button>
+          </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
           <p>
