@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { marked } from 'marked';
 import ReactMarkdown from 'react-markdown'; // Import the library
 
 
@@ -64,10 +64,22 @@ function LLMChat() {
 
   const processMarkdown = (markdown) => {
     let sectionData = [];
-    let processedContent = markdown.replace(/\n/g, '<br>');
-    processedContent = processedContent.replace(/---/g, '');
+  
+    // Primero eliminamos las líneas horizontales '---'
+    let processedContent = markdown.replace(/---/g, '');
+  
+    // Reemplazamos ### título con <h3>título</h3>
+    processedContent = processedContent.replace(/###\s*(.+)/g, '<h3>$1</h3>');
+  
+    // Reemplazamos ## título con <h2>título</h2>
+    processedContent = processedContent.replace(/##\s*(.+)/g, '<h2>$1</h2>');
+  
+    // Luego reemplazamos saltos de línea restantes por <br>
+    processedContent = processedContent.replace(/\n/g, '<br>');
+  
     return marked(processedContent);
   };
+  
 
 
   // API call to get answer

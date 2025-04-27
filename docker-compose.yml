@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ./Back/API
+      dockerfile: Dockerfile
+    container_name: greenlake-backend
+    ports:
+      - "5454:5454"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      # Add your database credentials and other environment variables here
+    command: python app.py
+    restart: unless-stopped
+    networks:
+      - greenlake-network
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./Front
+      dockerfile: Dockerfile
+    container_name: greenlake-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - greenlake-network
+
+networks:
+  greenlake-network:
+    driver: bridge

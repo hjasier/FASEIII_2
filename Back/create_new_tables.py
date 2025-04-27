@@ -52,4 +52,5 @@ if __name__ == "__main__":
     #insert_coches(API_URL, "coches.sql")
     #insert_coches(API_URL, "people.sql")
     #insert_coches(API_URL, "taxistas.sql")ç
-    insert_coches(API_URL, "trips.sql")
+    #insert_coches(API_URL, "trips.sql")
+    insert_coches(API_URL, "inserts_trips_full.sql")
