@@ -14,16 +14,29 @@ function LLMChat() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Mock conversation history
+  // Load conversations from localStorage
   useEffect(() => {
-    // This would be an API call in production
-    const mockConversations = [
-      { id: 1, title: 'Análisis de calidad del aire', date: '2025-04-24', preview: '¿Cuáles son las zonas con mejor calidad del aire?' },
-      { id: 2, title: 'Estudio de transporte público', date: '2025-04-22', preview: '¿Qué rutas de transporte tienen mayor demanda?' },
-      { id: 3, title: 'Consulta sobre datos educativos', date: '2025-04-20', preview: 'Muéstrame las escuelas con mejor rendimiento' }
-    ];
-    setConversations(mockConversations);
+    const savedConversations = localStorage.getItem('greenlake-conversations');
+    if (savedConversations) {
+      setConversations(JSON.parse(savedConversations));
+    } else {
+      // Default mock conversations if no saved data exists
+      const mockConversations = [
+        { id: 1, title: 'Análisis de calidad del aire', date: '2025-04-24', preview: '¿Cuáles son las zonas con mejor calidad del aire?' },
+        { id: 2, title: 'Estudio de transporte público', date: '2025-04-22', preview: '¿Qué rutas de transporte tienen mayor demanda?' },
+        { id: 3, title: 'Consulta sobre datos educativos', date: '2025-04-20', preview: 'Muéstrame las escuelas con mejor rendimiento' }
+      ];
+      setConversations(mockConversations);
+      localStorage.setItem('greenlake-conversations', JSON.stringify(mockConversations));
+    }
   }, []);
+
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem('greenlake-conversations', JSON.stringify(conversations));
+    }
+  }, [conversations]);
 
   // Handle initial query from home page
   useEffect(() => {
@@ -63,19 +76,20 @@ function LLMChat() {
   }, [conversations, activeConversation]);
 
   const processMarkdown = (markdown) => {
-    let sectionData = [];
+    let processedContent = markdown;
   
-    // Primero eliminamos las líneas horizontales '---'
-    let processedContent = markdown.replace(/---/g, '');
+    // Primero eliminamos líneas horizontales '---'
+    processedContent = processedContent.replace(/---/g, '');
   
-    // Reemplazamos ### título con <h3>título</h3>
-    processedContent = processedContent.replace(/###\s*(.+)/g, '<br><h3>$1</h3>');
+    // Aseguramos que haya salto de línea antes de ## o ###
+    processedContent = processedContent.replace(/(#+)\s*(.+)/g, '\n$1 $2');
   
-    // Reemplazamos ## título con <h2>título</h2>
-    processedContent = processedContent.replace(/##\s*(.+)/g, '<br><h2>$1</h2>');
+    // Ahora procesamos los encabezados
+    processedContent = processedContent.replace(/###\s*(.+)/g, '<h3>$1</h3>');
+    processedContent = processedContent.replace(/##\s*(.+)/g, '<h2>$1</h2>');
   
-    // Luego reemplazamos saltos de línea restantes por <br>
-    processedContent = processedContent.replace(/\n/g, '<br>');
+    // Reemplazamos saltos de línea restantes por <br>
+    processedContent = processedContent.replace(/\n+/g, '<br>');
   
     return marked(processedContent);
   };

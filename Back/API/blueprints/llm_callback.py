@@ -171,7 +171,7 @@ def generate():
         f"El conjunto completo contiene {num_registros} registros similares. "
         f"Si es conveniente, genera un gráfico usando las herramientas disponibles. No grafiques datos únicos o cuya grafica no tenga sentido. Cuando no sea conveniente el gráfico, NO expliques por qué no has hecho un gráfico y responde con un mensaje claro y conciso."
         f"Además, cuando sea ligeramente complejo, explica en texto qué muestra el gráfico o los datos, para ayudar al usuario con pocos conocimientos a entenderlos, pero sin ser redundante ni infantil. Usa markdown para formatear la respuesta."
-        f"No digas frases como 'No se genera gráfico porque...' , el usuario no necesita saber eso. "
+        
     ))
     
     
