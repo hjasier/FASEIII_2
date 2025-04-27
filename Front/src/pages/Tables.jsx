@@ -15,7 +15,7 @@ function Tables() {
   const [showOptions, setShowOptions] = useState(false);
   const [showResultPreview, setShowResultPreview] = useState(false);
   const [queryResult, setQueryResult] = useState(null);
-  
+
   const navigate = useNavigate();
 
   // Mock categories for filtering
@@ -33,16 +33,16 @@ function Tables() {
             // Determine category based on table name
             const tableName = item.table.toLowerCase();
             let assignedCategory = 'misc'; // Default to misc
-            
+
             // Check if table name contains any category string (excluding 'all')
             for (const category of categories) {
               if (category !== 'all' && tableName.includes(category)) {
                 assignedCategory = category;
                 break; // Use the first matching category
               }
-              
+
             }
-            
+
             if (tableName.includes("cit")) {
               assignedCategory = "city";
             }
@@ -67,28 +67,28 @@ function Tables() {
         setIsLoading(false);
       }
     };
-  
+
     fetchTables();
   }, []);
 
   // Filter tables based on search query and category
   useEffect(() => {
     let result = [...tables];
-    
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(table => 
-        table.name.toLowerCase().includes(query) || 
+      result = result.filter(table =>
+        table.name.toLowerCase().includes(query) ||
         table.description.toLowerCase().includes(query)
       );
     }
-    
+
     // Filter by category
     if (selectedCategory !== 'all') {
       result = result.filter(table => table.category === selectedCategory);
     }
-    
+
     setFilteredTables(result);
   }, [searchQuery, selectedCategory, tables]);
 
@@ -107,14 +107,14 @@ function Tables() {
       alert('Por favor, ingrese un nombre para el proyecto y seleccione al menos una tabla.');
       return;
     }
-    
+
     // Here you would save the project to your backend
     console.log('Creating project:', {
       name: projectName,
       description: projectDescription,
       tables: selectedTables.map(id => tables.find(table => table.id === id))
     });
-    
+
     // Navigate to the projects page or the new project's page
     navigate('/projects');
   };
@@ -126,29 +126,29 @@ function Tables() {
 
   const handleExport = async (type) => {
     if (selectedTables.length === 0) return;
-  
+
     // adjust the -1 if your selectedTables are 1-based; remove -1 if they're 0-based
     const selectedNames = selectedTables.map(i => tables[i - 1].name);
     console.log(`Tables to download as ${type}:`, selectedNames);
-  
+
     try {
       const res = await fetch("http://127.0.0.1:5454/export", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tables: selectedNames,
           type: type
         }),
       });
-  
+
       if (!res.ok) {
         // try to pull the JSON error message
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Error al exportar tablas");
       }
-  
+
       const blob = await res.blob();
       // figure out the filename from Content-Disposition, or fallback:
       let filename = `export_tables.${type}.zip`;
@@ -157,7 +157,7 @@ function Tables() {
         const m = cd.match(/filename\*?=['"]?(?:UTF-8'')?(.+?)['"]?(;|$)/);
         if (m) filename = decodeURIComponent(m[1]);
       }
-  
+
       // download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -172,7 +172,7 @@ function Tables() {
       alert(error.message);
     }
   };
-  
+
   // Generate category color classes based on category name
   const getCategoryColorClass = (category) => {
     const categoryColors = {
@@ -182,7 +182,7 @@ function Tables() {
       'seguridad': 'bg-purple-50 text-purple-700',
       'economía': 'bg-cyan-50 text-cyan-700',
     };
-    
+
     return categoryColors[category] || 'bg-green-50 text-green-700';
   };
 
@@ -191,11 +191,11 @@ function Tables() {
       // Fetch columns for the selected table from the API
       const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
       const data = await response.json();
-  
+
       if (data.metadata.status === 'success') {
         // Log the retrieved column data to the console for debugging
         console.log('Retrieved columns data:', data.results);
-  
+
         // Set the table name and columns to display
         setShowResultPreview(true);
         setQueryResult({
@@ -229,20 +229,19 @@ function Tables() {
             </div>
             <h1 className="text-2xl font-bold text-gray-800">Explorador de Tablas</h1>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setShowCreateProject(true)}
             disabled={selectedTables.length === 0}
-            className={`flex items-center ${
-              selectedTables.length > 0 
-                ? 'bg-[#36C78D] hover:bg-[#2da677]' 
+            className={`flex items-center ${selectedTables.length > 0
+                ? 'bg-[#36C78D] hover:bg-[#2da677]'
                 : 'bg-gray-300 cursor-not-allowed'
-            } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
+              } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
-            Crear Proyecto 
+            Crear Proyecto
             {selectedTables.length > 0 && (
               <span className="ml-2 bg-white text-[#36C78D] text-sm px-2 py-0.5 rounded-full">
                 {selectedTables.length}
@@ -255,7 +254,7 @@ function Tables() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Back button */}
         <div className="mb-6">
-          <button 
+          <button
             onClick={handleBack}
             className="flex items-center text-[#36C78D] hover:text-[#2da677]"
           >
@@ -265,7 +264,7 @@ function Tables() {
             Volver al Inicio
           </button>
         </div>
-        
+
         {/* Search and Filters */}
         <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <div className="flex flex-col md:flex-row gap-4">
@@ -289,7 +288,7 @@ function Tables() {
                 />
               </div>
             </div>
-            
+
             <div className="md:w-64">
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
                 Categoría
@@ -315,7 +314,7 @@ function Tables() {
               </div>
             </div>
           </div>
-          
+
           {/* Selected tables chips */}
           {selectedTables.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
@@ -328,7 +327,7 @@ function Tables() {
                   return table ? (
                     <div key={id} className="bg-green-50 text-[#36C78D] px-3 py-1 rounded-full text-sm flex items-center">
                       {table.name}
-                      <button 
+                      <button
                         onClick={() => handleTableSelection(id)}
                         className="ml-1 hover:text-red-500 focus:outline-none"
                       >
@@ -343,7 +342,7 @@ function Tables() {
             </div>
           )}
         </div>
-        
+
         {/* Tables List */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
           {isLoading ? (
@@ -365,8 +364,8 @@ function Tables() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="h-4 w-4 text-[#36C78D] border-gray-300 rounded focus:ring-[#36C78D]"
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -397,13 +396,13 @@ function Tables() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredTables.map((table) => (
-                    <tr 
-                      key={table.id} 
+                    <tr
+                      key={table.id}
                       className={selectedTables.includes(table.id) ? "bg-green-50" : "hover:bg-gray-50 transition-colors"}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           className="h-4 w-4 text-[#36C78D] border-gray-300 rounded focus:ring-[#36C78D]"
                           onChange={() => handleTableSelection(table.id)}
                           checked={selectedTables.includes(table.id)}
@@ -428,7 +427,7 @@ function Tables() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button 
+                        <button
                           onClick={() => handlePreviewClick(table.name)}  // Adapted to trigger handlePreviewClick with the table name
                           className="text-[#36C78D] hover:text-[#2da677] mr-3 flex items-center"
                         >
@@ -447,7 +446,7 @@ function Tables() {
           )}
         </div>
       </div>
-      
+
       {/* Create Project Modal */}
       {showCreateProject && (
         <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
@@ -460,7 +459,7 @@ function Tables() {
               </div>
               <h2 className="text-xl font-bold text-gray-800">Crear Nuevo Proyecto</h2>
             </div>
-            
+
             <div className="mb-4">
               <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-1">
                 Nombre del Proyecto
@@ -474,7 +473,7 @@ function Tables() {
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
               />
             </div>
-            
+
             <div className="mb-4">
               <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-1">
                 Descripción (opcional)
@@ -487,7 +486,7 @@ function Tables() {
                 className="w-full p-2 border border-gray-300 rounded-md h-20 focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
               />
             </div>
-            
+
             <div className="mb-4">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Tablas Seleccionadas</h3>
               <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
@@ -500,12 +499,12 @@ function Tables() {
                       return table ? (
                         <li key={id} className="py-2 flex justify-between items-center">
                           <div>
-                            <span className="font-medium text-gray-800">{table.name}</span> 
+                            <span className="font-medium text-gray-800">{table.name}</span>
                             <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${getCategoryColorClass(table.category)}`}>
                               {table.category}
                             </span>
                           </div>
-                          <button 
+                          <button
                             onClick={() => handleTableSelection(id)}
                             className="text-red-600 hover:text-red-800 p-1"
                             title="Eliminar"
@@ -522,7 +521,7 @@ function Tables() {
               </div>
               <p className="text-xs text-gray-500 mt-1">Total: {selectedTables.length} tablas</p>
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
               <button
                 onClick={() => setShowCreateProject(false)}
@@ -554,23 +553,22 @@ function Tables() {
               setShowOptions(!showOptions);
             }}
             disabled={selectedTables.length === 0}
-            className={`flex items-center ${
-              selectedTables.length > 0 
-                ? 'bg-[#36C78D] hover:bg-[#2da677]' 
+            className={`flex items-center ${selectedTables.length > 0
+                ? 'bg-[#36C78D] hover:bg-[#2da677]'
                 : 'bg-gray-300 cursor-not-allowed'
-            } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
+              } text-white px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow`}
           >
             Descargar tablas
             <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          
+
           {/* Options popup */}
           {showOptions && selectedTables.length > 0 && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
               <ul className="py-1">
-                <li 
+                <li
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
                   onClick={async () => {
                     setExportType("csv");
@@ -585,7 +583,7 @@ function Tables() {
                     </svg>
                   )}
                 </li>
-                <li 
+                <li
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
                   onClick={async () => {
                     setExportType("json");
@@ -600,7 +598,7 @@ function Tables() {
                     </svg>
                   )}
                 </li>
-                <li 
+                <li
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
                   onClick={async () => {
                     setExportType("xlsx");
@@ -622,93 +620,93 @@ function Tables() {
       </div>
 
       {/* Footer */}
-      
+
       {/* Table Preview Modal - Add this code here */}
-        {showResultPreview && queryResult && (
-          <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6">
-          <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-[#36C78D] rounded-full flex items-center justify-center mr-2 text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-            </svg>
+      {showResultPreview && queryResult && (
+        <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6">
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-[#36C78D] rounded-full flex items-center justify-center mr-2 text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">Vista Previa: {queryResult.name}</h2>
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Vista Previa: {queryResult.name}</h2>
+              <button
+                onClick={() => setShowResultPreview(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button 
-              onClick={() => setShowResultPreview(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="mb-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Estructura de la Tabla</h3>
-            <div className="bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
-              {queryResult.columns.length > 0 ? (
-            <div className="max-h-96 overflow-y-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  #
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre de Columna
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo de Dato
-                </th>
-              </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-              {queryResult.columns.map((column, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {index + 1}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                <div className="font-medium text-gray-900">{column.name}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700">
-                  {column.type}
-                </span>
-                  </td>
-                </tr>
-              ))}
-                </tbody>
-              </table>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Estructura de la Tabla</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
+                {queryResult.columns.length > 0 ? (
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            #
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Nombre de Columna
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tipo de Dato
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {queryResult.columns.map((column, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                              {index + 1}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="font-medium text-gray-900">{column.name}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700">
+                                {column.type}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    No hay columnas disponibles para esta tabla.
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Total: {queryResult.columns.length} columnas
+              </p>
             </div>
-              ) : (
-            <div className="p-4 text-center text-gray-500">
-              No hay columnas disponibles para esta tabla.
-            </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Total: {queryResult.columns.length} columnas
-            </p>
-          </div>
-          
-          <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
-            <button
-              onClick={() => setShowResultPreview(false)}
-              className="px-4 py-2 bg-[#36C78D] hover:bg-[#2da677] text-white rounded-md transition-colors flex items-center shadow-sm hover:shadow"
-            >
-              Cerrar
-            </button>
-          </div>
+
+            <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
+              <button
+                onClick={() => setShowResultPreview(false)}
+                className="px-4 py-2 bg-[#36C78D] hover:bg-[#2da677] text-white rounded-md transition-colors flex items-center shadow-sm hover:shadow"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
-        )}
-        
-        {/* Footer */}
+        </div>
+      )}
+
+      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-8 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
           <p>
