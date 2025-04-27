@@ -335,7 +335,7 @@ def generate_expert():
         })
 
     return jsonify({
-        'type': 'text',
+        'type': 'sql_query',
         'message': message.content
     })
 
