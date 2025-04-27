@@ -60,9 +60,11 @@ const SensorDashboard = () => {
       });
       
       setCities(cityNames);
+      return cityNames; // Return the cityNames so we can use them immediately
     } catch (error) {
       console.error('Failed to fetch cities:', error);
       setCities([]);
+      return [];
     }
   };
 
@@ -71,24 +73,25 @@ const SensorDashboard = () => {
     const fetchInitialCities = async () => {
       try {
         setLoading(true);
-        await fetchCities();
+        const cityNames = await fetchCities();
         
-        // Set the first city as default
-        if (cities.length > 0) {
-          setSelectedCity(cities[0]);
+        // Use the cityNames directly, not the state variable
+        if (cityNames.length > 0) {
+          setSelectedCity(cityNames[0]);
         }
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch cities:', err);
         // Fallback to default cities
-        setCities(['Barcelona', 'Madrid', 'Valencia']);
-        setSelectedCity('Barcelona');
+        const defaults = ['Barcelona', 'Madrid', 'Valencia'];
+        setCities(defaults);
+        setSelectedCity(defaults[0]);
         setLoading(false);
       }
     };
     
     fetchInitialCities();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Handle city selection change
   const handleCityChange = (e) => {

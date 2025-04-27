@@ -21,12 +21,14 @@ La solución propuesta permite a los usuarios crear visualizaciones de datos med
 
 `SELECT s.id, s.city_id, s.name, st.flow_rate, st.event_time FROM sensors AS s INNER JOIN sensor_metrics_traffic AS st ON s.id = st.sensor_id WHERE st.event_time >= CURRENT_DATE - INTERVAL '7 days' ORDER BY st.event_time DESC LIMIT 100;`
 
- Con esto se nos permite saber potenciales rutas a los ciudadanos demanda y que mas contaminación genera, por lo tanto también resultan potenciales viajes a los que el transporte publico podría expandirse. Ademas la posiblidad de monitorear datos en tiempo real mediante kafka permite tambien al ciudadano saber el estado del trafico, como el estado del aire y del agua. Con todo esto buscamos un desarrollo sostenible y transparente. Tambien permitimos la descarga de todos los datasets disponibles con el fin de que cada ciudadano pueda extraer y estudiar los datos. 
+ Con esto se nos permite saber potenciales rutas que los ciudadanos demandan y que mas contaminación genera, por lo tanto también resultan potenciales viajes a los que el transporte publico podría expandirse. Ademas la posiblidad de monitorear datos en tiempo real mediante kafka permite tambien al ciudadano saber el estado del trafico, como el estado del aire y del agua. Con todo esto buscamos un desarrollo sostenible y transparente. Tambien permitimos la descarga de todos los datasets disponibles con el fin de que cada ciudadano pueda extraer y estudiar los datos. 
 
 # Limitaciones
 
 Algunas limitaciones que tenemos ahora mismo son:
 - El contexto del la base de datos es la estructura del *schema* "public" completo así como las relaciones entre tablas. En caso de escalar mucho la base de datos, el precio de las llamadas a las APIs de LLMs podría ser costoso, por lo que se podría mejorar creando ciertas *tools* para que el propio modelo decida qué partes de la base de datos quiere conocer.
+
+- No se guardan los gráficos de los proyectos
 
 ## Como ejecutar con Docker
 ```sh
