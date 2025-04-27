@@ -26,7 +26,7 @@ function Tables() {
     const fetchTables = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:5454/projects/create', {
+        const response = await fetch('http://localhost:5454/tables', {
           method: 'GET'
         });
   
@@ -214,8 +214,8 @@ function Tables() {
     try {
       // Fetch columns for the selected table from the API
       // With Axios, the response is already parsed to JSON
-      const response = await fetch.get(`127.0.0.1:5454/columns/${tableName}`);
-      const data = await response.json()
+      const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
+      const data = await response.json();
 
       if (data && data.metadata && data.metadata.status === 'success') {
         // Log the retrieved column data to the console for debugging
