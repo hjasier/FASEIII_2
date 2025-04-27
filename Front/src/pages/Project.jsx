@@ -71,7 +71,7 @@
             // Extract the query from the label
             const query = tableName.replace('Resultado: ', '');
             
-            fetch('http://localhost:5454/export_query', {
+            fetch('http://10.10.76.241:5454/export_query', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -104,7 +104,7 @@
             });
           } else {
             // Original code for regular tables
-            fetch('http://localhost:5454/export', {
+            fetch('http://10.10.76.241:5454/export', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -182,7 +182,7 @@
             for (let i = 0; i < tableNames.length; i++) {
               const tableName = tableNames[i];
               try {
-                const response = await fetch(`http://localhost:5454/columns/${tableName}`);
+                const response = await fetch(`http://10.10.76.241:5454/columns/${tableName}`);
                 const data = await response.json();
                 
                 if (data.metadata.status === 'success') {
@@ -253,7 +253,7 @@
       // Function to fetch data for a specific table
       const fetchTableData = async (tableName) => {
         try {
-          const response = await fetch('http://localhost:5454/export', {
+          const response = await fetch('http://10.10.76.241:5454/export', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -296,7 +296,7 @@
         setShowResultPreview(false);
       
         try {
-          const resp = await fetch('http://localhost:5454/expert_query', {
+          const resp = await fetch('http://10.10.76.241:5454/expert_query', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

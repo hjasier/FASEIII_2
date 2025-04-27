@@ -22,7 +22,7 @@ const SensorDashboard = () => {
   // Add this function to fetch cities in your Dashboard component where cities are loaded
   const fetchCities = async () => {
     try {
-      const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
+      const response = await axios.get('http://10.10.76.241:5454/api/greenlake-eval/sensors/cities');
       console.log('Cities data:', response);
       
       // Extract the actual data from Axios response

@@ -29,7 +29,7 @@ function Projects() {
           return;
         }
         
-        const response = await fetch('http://localhost:5454/projects/list', {
+        const response = await fetch('http://10.10.76.241:5454/projects/list', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authToken}`
@@ -77,7 +77,7 @@ function Projects() {
       
       if (!authToken) return;
       
-      const response = await fetch(`http://localhost:5454/projects/tables/${projectId}`, {
+      const response = await fetch(`http://10.10.76.241:5454/projects/tables/${projectId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`
