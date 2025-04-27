@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+import ReactMarkdown from 'react-markdown'; // Import the library
+
+
 function LLMChat() {
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
@@ -59,6 +62,14 @@ function LLMChat() {
     }
   }, [conversations, activeConversation]);
 
+  const processMarkdown = (markdown) => {
+    let sectionData = [];
+    let processedContent = markdown.replace(/\n/g, '<br>');
+    processedContent = processedContent.replace(/---/g, '');
+    return marked(processedContent);
+  };
+
+
   // API call to get answer
   const fetchAnswerFromAPI = async (question) => {
     setIsLoading(true);
@@ -87,8 +98,78 @@ function LLMChat() {
         db_data: data.db_data || null,
         sql: data.sql_generated || null
       };
-      
+
+      if (data.graph_base64) {
+        assistantMessage.message = "Analizando datos..."; 
+      }
+
+
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Update the streaming part in your fetchAnswerFromAPI function
+
+      if (data.graph_base64) {
+        const response = await fetch('http://127.0.0.1:5454/explain-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            image_base64: data.graph_base64,
+            initial_prompt: question
+          })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        // Initialize with empty content
+        assistantMessage.content = '';
+        setMessages(prev => {
+          const updatedMessages = [...prev];
+          updatedMessages[updatedMessages.length - 1] = assistantMessage;
+          return updatedMessages;
+        });
+
+        let buffer = ''; // Buffer to accumulate chunks before processing
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Add new chunk to buffer
+          const chunk = decoder.decode(value);
+          buffer += chunk;
+          
+          // Process complete SSE messages from the buffer
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep the incomplete line in the buffer
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const text = line.substring(6); // Remove 'data: ' prefix
+              if (text) {
+                // Check if we need to add line breaks to maintain markdown format
+                if (assistantMessage.content && text.match(/^#+\s|^\d+\.\s|^-\s|^\*\s/)) {
+                  // If the new text starts with markdown syntax (heading, list item), add double newline before it
+                  assistantMessage.content += '\n\n' + text;
+                } else {
+                  assistantMessage.content += text;
+                }
+                
+                setMessages(prev => {
+                  const updatedMessages = [...prev];
+                  updatedMessages[updatedMessages.length - 1] = { ...assistantMessage };
+                  return updatedMessages;
+                });
+              }
+            }
+          }
+        }
+      }
+      
+
+
     } catch (error) {
       console.error('Error fetching from API:', error);
       
@@ -177,47 +258,84 @@ function LLMChat() {
     
     return (
       <div className="space-y-3">
-        {/* Text content */}
-        {message.content && (
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-        )}
-        
-        {/* Base64 image if available */}
-        {message.graph && (
-          <div className="mt-3">
-            <img 
-              src={`data:image/png;base64,${message.graph}`} 
-              alt="Graph visualization" 
-              className="max-w-full rounded-lg border border-gray-200"
-            />
-          </div>
-        )}
-        
-        {/* Show SQL query if available */}
-        {message.sql && (
-          <div className="mt-2 p-2 bg-gray-800 text-gray-100 rounded overflow-x-auto text-xs">
-            <pre>{message.sql}</pre>
-          </div>
-        )}
-        
-        {/* Show data table if available */}
-        {message.db_data && message.db_data.length > 0 && (
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded">
-              <tbody className="bg-white divide-y divide-gray-200">
-                {message.db_data.map((row, rowIndex) => (
-                  <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="px-3 py-2 text-sm text-gray-700">
+          
+
+                {message.content && (
+                  <div className="text-sm prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:my-2 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
+                    <ReactMarkdown>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                )}
+          
+                {message.graph && (
+                <div className="mt-3">
+                  <img 
+                  src={`data:image/png;base64,${message.graph}`} 
+                  alt="Graph visualization" 
+                  className="max-w-full rounded-lg border border-gray-200"
+                  />
+                </div>
+                )}
+                
+                {/* Show SQL query if available */}
+                {message.sql && (
+                <div className="mt-2 flex flex-col items-center">
+                  <button 
+                  className="flex items-center text-gray-600 hover:text-gray-800"
+                  onClick={() => {
+                    const sqlElement = document.getElementById(`sql-${message.id}`);
+                    if (sqlElement) {
+                    sqlElement.style.display = sqlElement.style.display === 'none' ? 'block' : 'none';
+                    }
+                  }}
+                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.293 3.293a1 1 0 011.414 1.414l-14 14a1 1 0 01-1.414-1.414l14-14zM4 4h10a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm1 2v10h10V6H5z" />
+                  </svg>
+                  Ver SQL
+                  </button>
+                  <div id={`sql-${message.id}`} style={{ display: 'none' }} className="mt-2 p-2 bg-gray-800 text-gray-100 rounded overflow-x-auto text-xs">
+                  <pre>{message.sql}</pre>
+                  </div>
+                </div>
+                )}
+                
+                {/* Show data table if available */}
+                {message.db_data && message.db_data.length > 0 && (
+                <div className="mt-3 flex flex-col items-center">
+                  <button 
+                  className="flex items-center text-gray-600 hover:text-gray-800"
+                  onClick={() => {
+                    const tableElement = document.getElementById(`table-${message.id}`);
+                    if (tableElement) {
+                    tableElement.style.display = tableElement.style.display === 'none' ? 'block' : 'none';
+                    }
+                  }}
+                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M3 3h14a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v10h14V5H3zm2 2h10v2H5V7zm0 4h10v2H5v-2z" />
+                  </svg>
+                  Ver Tabla
+                  </button>
+                  <div id={`table-${message.id}`} style={{ display: 'none' }} className="mt-3 overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded">
+                    <tbody className="bg-white divide-y divide-gray-200">
+                    {message.db_data.map((row, rowIndex) => (
+                      <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {row.map((cell, cellIndex) => (
+                        <td key={cellIndex} className="px-3 py-2 text-sm text-gray-700">
                         {cell}
-                      </td>
+                        </td>
+                      ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+                )}
+        
       </div>
     );
   };
@@ -339,7 +457,7 @@ function LLMChat() {
                 ))}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-lg py-2 px-4 rounded-bl-none">
+                    <div className="bg-[#f3f4f66b] rounded-lg py-2 px-4 rounded-bl-none">
                       <div className="flex space-x-2">
                         <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>

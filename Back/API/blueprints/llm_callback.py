@@ -9,6 +9,8 @@ from .schema import table_schema
 from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 from azure.core.credentials import AzureKeyCredential
+from openai import OpenAI
+from flask import Response, stream_with_context
 
 llm_bp = Blueprint('llm_bp', __name__)
 
@@ -31,14 +33,21 @@ cursor = connection.cursor()
 # Azure OpenAI Setup
 endpoint = "https://models.github.ai/inference"
 model = "openai/gpt-4.1"
-token = "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"
+token = "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"
+
 client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(token))
 
 
 
 def query(sql_query):
-    cursor.execute(sql_query)
-    return cursor.fetchall()
+    try:
+        cursor.execute(sql_query)
+        return cursor.fetchall()
+    except psycopg2.Error as e:
+        connection.rollback()  # <- importante: limpiamos el estado de error
+        print(f"Error ejecutando SQL: {e}")
+        raise  # opcional: relanzamos el error para que Flask pueda manejarlo
+
 
 def generar_grafico(tipo_grafico, x, y, titulo="Gráfico"):
     plt.style.use('seaborn-v0_8-whitegrid')
@@ -83,6 +92,34 @@ def generar_grafico(tipo_grafico, x, y, titulo="Gráfico"):
     plt.close()
     return img_base64
 
+
+def process_image_stream(base64, initial_prompt):
+    client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=token,
+    )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": f"Explica el grafico que se muestra a continuación. El contexto de la pregunta del usuario es: {initial_prompt}. Usa markdown para formatear la respuesta."},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64}"}},
+            ],
+        }],
+        stream=True  
+    )
+
+    for chunk in response:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+        if hasattr(delta, 'content') and delta.content:
+            yield delta.content
+
+
+
+
 # Main endpoint
 @llm_bp.route('/generate', methods=['POST'])
 def generate():
@@ -92,10 +129,13 @@ def generate():
         SystemMessage(f"Eres un asistente que genera queries SQL basadas en el schema: {table_schema}"),
         UserMessage(user_question)
     ]
+    
+    
 
     response = client.complete(messages=prompt, temperature=0, top_p=1, model=model)
     response_message = response.choices[0].message.content
 
+    
     match = re.search(r"```(?:\w+\n)?(.*?)```", response_message, re.DOTALL)
 
     if not match:
@@ -114,8 +154,9 @@ def generate():
     prompt.append(AssistantMessage(response_message))
     prompt.append(UserMessage(
         f"Ejemplo de los datos: {muestra_db_data}. "
-        f"El conjunto completo contiene {num_registros} registros similares."
-        f"Si corresponde , genera un gráfico usando las herramientas disponibles.No todas las consultas requieren un gráfico , solo a las que les pueda ayudar al usuario a ver los datos visualmente. "
+        f"El conjunto completo contiene {num_registros} registros similares. "
+        f"Si corresponde, genera un gráfico usando las herramientas disponibles. "
+        f"Además, siempre explica en texto qué muestra el gráfico o los datos, para ayudar al usuario a entenderlos. Usa markdown para formatear la respuesta."
     ))
     
     
@@ -153,7 +194,7 @@ def generate():
         return jsonify({
             'sql_generated': sql_query,
             'db_data': db_data,
-            'graph_base64': img_base64
+            'graph_base64': img_base64,
         })
 
     return jsonify({
@@ -161,3 +202,21 @@ def generate():
         'db_data': db_data,
         'message': message.content
     })
+    
+    
+# Explain image
+@llm_bp.route('/explain-image', methods=['POST'])
+def explain_image():
+
+    image_base64 = request.json.get('image_base64')
+    initial_prompt = request.json.get('initial_prompt')
+    if not image_base64:
+        return jsonify({'error': 'No se proporcionó una imagen'}), 400
+
+    def generate():
+        for chunk in process_image_stream(image_base64, initial_prompt):
+            yield f"data: {chunk}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+    
+    
