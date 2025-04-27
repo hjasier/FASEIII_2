@@ -3,16 +3,17 @@ from datetime import datetime
 from .dao import cur, conn
 from psycopg2 import sql, DatabaseError
 import os
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Create blueprint for project management
 projects_bp = Blueprint('projects', __name__)
 
 @projects_bp.route('/create', methods=['POST'])
-def create_project(current_user):
-    """
-    POST /projects/create
-    Create a new project for the authenticated user
-    """
+@jwt_required()
+def create_project():
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
+    
     # Get request data
     data = request.get_json()
     
@@ -24,9 +25,22 @@ def create_project(current_user):
         }), 400
     
     project_name = data['project_name']
-    user_id = current_user['user_id']
+    project_description = data.get('description', '')  # Get description, default to empty string
+    tables = data.get('tables', [])  # Get tables list
     
     try:
+        # First, verify the user exists in your database
+        cur.execute("SELECT user_id FROM users.user_accounts WHERE user_id = %s", (current_user_id,))
+        user_result = cur.fetchone()
+        
+        if not user_result:
+            return jsonify({
+                "status": "error",
+                "message": "User not found"
+            }), 404
+            
+        user_id = user_result[0]
+        
         # Check if a project with this name already exists for the user
         cur.execute(
             "SELECT project_id FROM users.projects WHERE user_id = %s AND project_name = %s",
@@ -35,36 +49,31 @@ def create_project(current_user):
         if cur.fetchone():
             return jsonify({
                 "status": "error",
-                "message": f"A project named '{project_name}' already exists for this user"
+                "message": "A project with this name already exists"
             }), 409
         
-        # Create new project
+        # Create new project with description
         cur.execute(
-            "INSERT INTO users.projects (user_id, project_name) VALUES (%s, %s) RETURNING project_id",
-            (user_id, project_name)
+            "INSERT INTO users.projects (user_id, project_name, description) VALUES (%s, %s, %s) RETURNING project_id",
+            (user_id, project_name, project_description)
         )
         project_id = cur.fetchone()[0]
         
-        # Add tables to the project if provided
-        tables = data.get('tables', [])
-        if tables:
-            for table_name in tables:
-                cur.execute(
-                    "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
-                    (project_id, table_name)
-                )
+        # Add tables to the project
+        for table_name in tables:
+            cur.execute(
+                "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
+                (project_id, table_name)
+            )
         
-        # Commit the transaction
         conn.commit()
         
         return jsonify({
             "status": "success",
             "message": "Project created successfully",
-            "project_id": project_id,
-            "project_name": project_name,
-            "tables_added": len(tables)
+            "project_id": project_id
         }), 201
-    
+        
     except DatabaseError as e:
         conn.rollback()
         return jsonify({
@@ -164,18 +173,20 @@ def add_tables_to_project(current_user):
         }), 500
 
 @projects_bp.route('/tables/<int:project_id>', methods=['GET'])
-def get_project_tables(current_user, project_id):
+@jwt_required()
+def get_project_tables(project_id):
     """
     GET /projects/tables/{project_id}
     Get all tables in a project
     """
-    user_id = current_user['user_id']
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
     
     try:
         # Check if the project exists and belongs to the user
         cur.execute(
             "SELECT project_name FROM users.projects WHERE project_id = %s AND user_id = %s",
-            (project_id, user_id)
+            (project_id, current_user_id)
         )
         project = cur.fetchone()
         
@@ -214,27 +225,47 @@ def get_project_tables(current_user, project_id):
         }), 500
 
 @projects_bp.route('/list', methods=['GET'])
-def list_user_projects(current_user):
+@jwt_required()
+def list_user_projects():
     """
     GET /projects/list
     List all projects for the authenticated user
     """
-    user_id = current_user['user_id']
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
     
     try:
-        # Get all projects for the user
+        # Get all projects for the user with additional details
         cur.execute(
-            "SELECT project_id, project_name FROM users.projects WHERE user_id = %s",
-            (user_id,)
+            """
+            SELECT p.project_id, p.project_name, p.description, 
+                   COUNT(pt.table_name) as table_count,
+                   p.created_at
+            FROM users.projects p
+            LEFT JOIN users.project_tables pt ON p.project_id = pt.project_id
+            WHERE p.user_id = %s
+            GROUP BY p.project_id, p.project_name, p.description, p.created_at
+            """,
+            (current_user_id,)
         )
-        projects = [{"project_id": row[0], "project_name": row[1]} for row in cur.fetchall()]
+        
+        projects = []
+        for row in cur.fetchall():
+            project = {
+                "id": row[0],
+                "name": row[1],
+                "description": row[2] or "",  # Handle null descriptions
+                "table_count": row[3],
+                "createdAt": row[4].strftime("%Y-%m-%d") if row[4] else None
+            }
+            projects.append(project)
         
         return jsonify({
             "status": "success",
-            "user_id": user_id,
+            "user_id": current_user_id,
             "projects": projects
         }), 200
-    
+        
     except DatabaseError as e:
         return jsonify({
             "status": "error",

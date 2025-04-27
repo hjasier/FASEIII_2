@@ -12,9 +12,19 @@ from blueprints.llm_callback import llm_bp
 from blueprints.auth import auth_bp  # Import the auth blueprint
 from blueprints.projects import projects_bp  # Import the projects blueprint
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 app = Flask(__name__)  # crea la aplicación
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# JWT Configuration
+app.config["JWT_SECRET_KEY"] = "your-secret-key"  # Change this to a secure secret key
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
+
+# Initialize JWT
+jwt = JWTManager(app)
 
 @app.route('/')
 def index():
