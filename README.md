@@ -21,7 +21,7 @@ La solución propuesta permite a los usuarios crear visualizaciones de datos med
 
 `SELECT s.id, s.city_id, s.name, st.flow_rate, st.event_time FROM sensors AS s INNER JOIN sensor_metrics_traffic AS st ON s.id = st.sensor_id WHERE st.event_time >= CURRENT_DATE - INTERVAL '7 days' ORDER BY st.event_time DESC LIMIT 100;`
 
- Con esto se nos permite saber potenciales rutas a los ciudadanos demanda y que mas contaminación genera, por lo tanto también resultan potenciales viajes a los que el transporte publico podría expandirse. Ademas la posiblidad de monitorear datos en tiempo real mediante kafka permite tambien al ciudadano saber el estado del trafico, como el estado del aire y del agua. Con todo esto buscamos un desarrollo sostenible y transparente. Tambien permitimos la descarga de todos los datasets disponibles con el fin de que cada ciudadano pueda extraer y estudiar los datos. 
+ Con esto se nos permite saber potenciales rutas que los ciudadanos demandan y que mas contaminación genera, por lo tanto también resultan potenciales viajes a los que el transporte publico podría expandirse. Ademas la posiblidad de monitorear datos en tiempo real mediante kafka permite tambien al ciudadano saber el estado del trafico, como el estado del aire y del agua. Con todo esto buscamos un desarrollo sostenible y transparente. Tambien permitimos la descarga de todos los datasets disponibles con el fin de que cada ciudadano pueda extraer y estudiar los datos. 
 
 # Limitaciones
 
