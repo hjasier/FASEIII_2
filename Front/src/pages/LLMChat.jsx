@@ -258,13 +258,10 @@ function LLMChat() {
     
     return (
       <div className="space-y-3">
-          
 
                 {message.content && (
-                  <div className="text-sm prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:my-2 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
-                    <ReactMarkdown>
-                      {message.content}
-                    </ReactMarkdown>
+                  <div className="text-sm prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:my-2 prose-li:my-0 prose-ul:my-2 prose-ol:my-2"
+                      dangerouslySetInnerHTML={{ __html: processMarkdown(message.content) }}>
                   </div>
                 )}
           
