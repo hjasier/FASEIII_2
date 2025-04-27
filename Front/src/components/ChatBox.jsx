@@ -31,7 +31,7 @@ const ChatBox = ({ onExecuteQuery, onCreateChart, tables, isOpen, onToggle }) =>
 
     try {
       // Send message to backend LLM API
-      const response = await fetch('http://10.10.76.241:5454/expert-generate', {
+      const response = await fetch('http://localhost:5454/expert-generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

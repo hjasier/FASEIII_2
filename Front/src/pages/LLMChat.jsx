@@ -92,7 +92,7 @@ function LLMChat() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: {'question':question}
+        body: JSON.stringify({question})
       });
       
       if (!response.ok) {
