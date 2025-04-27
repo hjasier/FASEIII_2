@@ -69,10 +69,10 @@ function LLMChat() {
     let processedContent = markdown.replace(/---/g, '');
   
     // Reemplazamos ### título con <h3>título</h3>
-    processedContent = processedContent.replace(/###\s*(.+)/g, '<h3>$1</h3>');
+    processedContent = processedContent.replace(/###\s*(.+)/g, '<br><h3>$1</h3>');
   
     // Reemplazamos ## título con <h2>título</h2>
-    processedContent = processedContent.replace(/##\s*(.+)/g, '<h2>$1</h2>');
+    processedContent = processedContent.replace(/##\s*(.+)/g, '<br><h2>$1</h2>');
   
     // Luego reemplazamos saltos de línea restantes por <br>
     processedContent = processedContent.replace(/\n/g, '<br>');
