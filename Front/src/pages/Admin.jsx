@@ -232,7 +232,18 @@ function Admin() {
                             Administración SQL
                         </h1>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/admin/csv-upload')}
+                            className="flex items-center text-green-600 hover:text-gray-900 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-md transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            Cargar CSV
+                        </button>
                         <button
                             onClick={handleLogout}
                             className="flex items-center text-gray-600 hover:text-gray-900"
@@ -328,7 +339,7 @@ function Admin() {
                                                 title="Descargar resultados como CSV"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                                                 </svg>
                                                 Descargar CSV
                                             </button>

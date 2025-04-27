@@ -11,6 +11,7 @@ import SensorDashboard from './pages/SensorDashboard';
 import Realtime from './pages/Realtime';
 import LLMChat from './pages/LLMChat';
 import Admin from './pages/Admin';
+import CSVUpload from './pages/CSVUpload';
 import { useEffect, useState } from 'react';
 
 // Protected route component
@@ -77,6 +78,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* CSV Upload route with protection */}
+        <Route path="/admin/csv-upload"
+          element={
+            <ProtectedRoute>
+              <CSVUpload />
             </ProtectedRoute>
           }
         />
