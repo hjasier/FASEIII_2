@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -28,25 +29,20 @@ function Login() {
 
     try {
       // Simulating API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Authentication logic
-      if (username === 'admin' && password === 'admin123') {
-        localStorage.setItem('isAuthenticated', 'true');
-
-        // Set admin-specific authentication if login is for admin
+      const { data, status } = await axios.post("http://localhost:5454/auth/login", { "username": username, "password": password });
+      if (status === 200) {
         const returnUrl = getReturnUrl();
-        if (returnUrl === '/admin') {
-          localStorage.setItem('adminAuthenticated', 'true');
-        }
-
-        // Navigate to return URL or default to home
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('adminAuthenticated', data.is_admin ? 'true' : 'false');
         navigate(returnUrl);
-      } else {
-        setError('Credenciales incorrectas');
       }
+
     } catch (err) {
-      setError('Error de conexión. Intente nuevamente.');
+      if (err.response.status === 401) {
+        setError('Credenciales incorrectas');
+      } else {
+        setError('Error de conexión. Intente nuevamente.');
+      }
     } finally {
       setLoading(false);
     }

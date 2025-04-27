@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -114,7 +115,7 @@ def login():
     try:
         # Find user by username
         cur.execute(
-            "SELECT user_id, username, password_hash FROM users.user_accounts WHERE username = %s",
+            "SELECT user_id, username, password_hash, is_admin FROM users.user_accounts WHERE username = %s",
             (username,)
         )
         user = cur.fetchone()
@@ -126,7 +127,7 @@ def login():
                 "message": "Invalid credentials"
             }), 401
         
-        user_id, username, _ = user
+        user_id, username, _, is_admin = user
         
         # Generate token
         token = jwt.encode({
@@ -140,6 +141,7 @@ def login():
             "message": "Login successful",
             "user_id": user_id,
             "username": username,
+            "is_admin": is_admin,
             "token": token
         }), 200
     
