@@ -237,7 +237,10 @@ def get_data():
 @cross_origin()
 def get_sensor_data_by_city(city_name):
     # Get all messages for the specified city
-    messages = message_store.get_by_city(get_city_id_from_name(city_name))
+    city_id = get_city_id_from_name(city_name)
+    if not city_id:
+        return jsonify({'error': f'City not found: {city_name}'}), 404
+    messages = message_store.get_by_city(city_id)
     
     if not messages:
         return jsonify({'error': f'No data found for city: {city_name}'}), 404

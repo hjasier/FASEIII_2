@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer 
+  Tooltip, Legend, ResponsiveContainer, ReferenceLine 
 } from 'recharts';
 import PropTypes from 'prop-types';
 
@@ -91,20 +91,32 @@ const getMetricColor = (metric, value, sensorType) => {
   }
 };
 
-// Component to display single metric chart
-const MetricChart = ({ metric, data, color, sensorType }) => {
+// Component to display single metric chart with synchronized tooltips
+const MetricChart = ({ metric, data, color, sensorType, activeTimestamp, onMouseMove, onMouseLeave }) => {
   const metricThreshold = thresholds[sensorType]?.[metric];
   const units = metricThreshold?.units || '';
   const formattedMetricName = metric.replace(/_/g, ' ');
   
+  // Find the active data point (kept for internal usage even though we don't display it)
+  const activePoint = activeTimestamp ? 
+    data.find(d => d.timestamp === activeTimestamp) : null;
+    
   return (
     <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
       <h3 className="text-lg font-medium text-gray-700 mb-2 capitalize">{formattedMetricName} <span className="text-gray-500 text-sm">({units})</span></h3>
-      <div className="h-48">
+      <div className="h-48 relative">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+            onMouseMove={(e) => {
+              if (e && e.activeLabel) {
+                // Pass the active timestamp to parent component
+                onMouseMove(e.activeLabel);
+              }
+            }}
+            onMouseLeave={() => onMouseLeave()}
+            syncId="sensorChartSyncId" // Add syncId to synchronize all charts
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis 
@@ -127,6 +139,7 @@ const MetricChart = ({ metric, data, color, sensorType }) => {
               }}
               formatter={(value) => [`${value} ${units}`, formattedMetricName]}
               labelFormatter={(label) => `Tiempo: ${label}`}
+              isAnimationActive={false}
             />
             <Line 
               type="monotone" 
@@ -137,6 +150,22 @@ const MetricChart = ({ metric, data, color, sensorType }) => {
               activeDot={{ r: 5 }} 
               isAnimationActive={false} 
             />
+            {/* Improved vertical line that follows mouse position across all charts */}
+            {activeTimestamp && (
+              <ReferenceLine 
+                x={activeTimestamp} 
+                stroke="#6366F1" 
+                strokeWidth={2}
+                strokeDasharray="3 3" 
+                isFront={true}
+                label={{
+                  position: 'top',
+                  value: '',
+                  fill: '#6366F1',
+                  fontSize: 10
+                }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -199,6 +228,8 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
   // City selection state - use internal state if props are not provided
   const [localCities, setLocalCities] = useState([]);
   const [localSelectedCity, setLocalSelectedCity] = useState('');
+  // State for synchronized tooltips
+  const [activeTimestamp, setActiveTimestamp] = useState(null);
 
   // Map sensor types to human-readable titles
   const sensorTitles = {
@@ -234,30 +265,15 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
     return latestValues;
   };
 
-  // Fetch the list of cities if we're using local state
-  useEffect(() => {
-    if (usingLocalCityState) {
-      const fetchCities = async () => {
-        try {
-          const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
-          // API returns cities as an array of arrays like [["City1"], ["City2"]]
-          // Convert to a simple array of city names
-          const cityNames = response.data.map(city => city[0]);
-          setLocalCities(cityNames);
-          
-          // Set the first city as default if there's no selected city
-          if (cityNames.length > 0 && !localSelectedCity) {
-            setLocalSelectedCity(cityNames[0]);
-          }
-        } catch (err) {
-          console.error('Failed to fetch cities:', err);
-          setError('Failed to fetch cities');
-        }
-      };
-      
-      fetchCities();
-    }
-  }, [usingLocalCityState]);
+  // Handle mouse move on any chart
+  const handleChartMouseMove = (timestamp) => {
+    setActiveTimestamp(timestamp);
+  };
+
+  // Handle mouse leave on any chart
+  const handleChartMouseLeave = () => {
+    setActiveTimestamp(null);
+  };
 
   useEffect(() => {
     // Set chart title based on sensor type
@@ -547,6 +563,9 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
               data={formattedData}
               color={colors[index % colors.length]}
               sensorType={sensorType}
+              activeTimestamp={activeTimestamp}
+              onMouseMove={handleChartMouseMove}
+              onMouseLeave={handleChartMouseLeave}
             />
           ))}
         </div>

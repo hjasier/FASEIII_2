@@ -2,6 +2,7 @@
 
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import LoginUser from './pages/LoginUser';
 import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
@@ -24,17 +25,22 @@ const ProtectedRoute = ({ children }) => {
 
   return children;
 };
+
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Redirect root to LoginUser page */}
+        <Route path="/" element={<Navigate to="/login-user" replace />} />
+        
+        {/* Admin login */}
         <Route path="/login" element={<Login />} />
+        
+        {/* User login/register */}
+        <Route path="/login-user" element={<LoginUser />} />
 
-        {/* Rutas protegidas */}
-
-        <Route path="/" element={
-          <Home />
-        } />
+        {/* Home now accessible after login */}
+        <Route path="/home" element={<Home />} />
 
         <Route path="/tables"
           element={
@@ -86,7 +92,6 @@ function App() {
         />
 
         {/* Chat */}
-
         {<Route path="/chat"
           element={
             <LLMChat />

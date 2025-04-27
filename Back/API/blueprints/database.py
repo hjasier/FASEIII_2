@@ -260,3 +260,89 @@ def export_tables():
         download_name=f"export_tables.{export_type}.zip",
         mimetype="application/zip"
     )
+    
+@database_bp.route('/export_query', methods=['POST'])
+def export_query():
+    # 1) Validar payload
+    payload = request.get_json(force=True, silent=True)
+    if not payload or 'query' not in payload:
+        return jsonify({
+            "status": "error",
+            "message": "Debe enviar un JSON con la clave 'query'."
+        }), 400
+
+    query = payload['query']
+    export_type = payload.get('type', 'csv')  # CSV por defecto
+
+    # 2) Validar tipo de exportación
+    if export_type not in ['csv', 'json', 'xlsx']:
+        return jsonify({
+            "status": "error",
+            "message": "El tipo de exportación debe ser 'csv', 'json' o 'xlsx'."
+        }), 400
+
+    # 3) Asegurarse de que sea solo SELECT (para evitar modificaciones de BD)
+    if not re.match(r'^\s*SELECT\b', query, re.IGNORECASE):
+        return jsonify({
+            "status": "error",
+            "message": "Solo se permiten consultas SELECT."
+        }), 400
+
+    # 4) Ejecutar consulta
+    try:
+        cur.execute(query)
+        cols = [col.name for col in cur.description]
+        rows = cur.fetchall()
+    except DatabaseError as e:
+        msg = str(e).split('\n')[0]
+        return jsonify({
+            "status": "error",
+            "message": f"Error al ejecutar la consulta: {msg}"
+        }), 400
+
+    # 5) Generar contenido según formato
+    if export_type == 'csv':
+        sio = io.StringIO()
+        writer = csv.writer(sio)
+        writer.writerow(cols)
+        writer.writerows(rows)
+        data_bytes = sio.getvalue().encode('utf-8')
+        filename = "query_export.csv"
+        mimetype = "text/csv"
+
+    elif export_type == 'json':
+        json_rows = [dict(zip(cols, row)) for row in rows]
+        content = json.dumps(json_rows, default=str)
+        data_bytes = content.encode('utf-8')
+        filename = "query_export.json"
+        mimetype = "application/json"
+
+    else:  # xlsx
+        xlsx_io = io.BytesIO()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Resultados"
+
+        # Encabezados
+        for col_idx, header in enumerate(cols, 1):
+            ws.cell(row=1, column=col_idx, value=header)
+        # Filas
+        for row_idx, row in enumerate(rows, 2):
+            for col_idx, cell_value in enumerate(row, 1):
+                ws.cell(row=row_idx, column=col_idx, value=cell_value)
+
+        wb.save(xlsx_io)
+        xlsx_io.seek(0)
+        data_bytes = xlsx_io.read()
+        filename = "query_export.xlsx"
+        mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    # 6) Enviar el archivo
+    mem = io.BytesIO(data_bytes)
+    mem.seek(0)
+    return send_file(
+        mem,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=mimetype
+    )
