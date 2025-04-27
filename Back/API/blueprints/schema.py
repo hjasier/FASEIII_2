@@ -655,4 +655,22 @@ Table `vip_network_data`:
 - timestamp (timestamp with time zone)
 Relations:
 - user_id references people.id
+
+
+Tabla cars (Coches)
+- id (UUID, PK, no nulo): Identificador único de cada coche. Se genera automáticamente con uuid_generate_v4().
+- brand (VARCHAR(100), no nulo): Marca del coche (por ejemplo, “Toyota”, “Ford”).
+- model (VARCHAR(100), no nulo): Modelo comercial del vehículo (por ejemplo, “Corolla”, “Focus”).
+- version (VARCHAR(255), nulo): Variante o edición específica del modelo (por ejemplo, “Hybrid”, “Sport”).
+- seating_capacity (INT, nulo): Número de plazas disponibles en el coche.
+- co2_emissions_grams_per_km (INT, nulo): Emisión promedio de CO₂ en gramos por kilómetro recorridο.
+
+Tabla taxi_drivers (Taxistas)
+- people_id (UUID, PK parcial, no nulo): Referencia al conductor, que debe existir en la tabla people.
+- car_id (UUID, PK parcial, no nulo): Referencia al coche asignado, que debe existir en la tabla cars.
+- co2_emissions_grams_per_km (INT, nulo): Emisión de CO₂ reportada por el taxista en ese coche, en gramos por kilómetro.
+
+
+
+
 """

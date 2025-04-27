@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // API base URL - adjust based on your environment
-const API_BASE_URL = 'http://10.10.76.241:5454/auth';
+const API_BASE_URL = 'http://localhost:5454/auth';
 
 function LoginUser() {
   const [isLoginMode, setIsLoginMode] = useState(true);
