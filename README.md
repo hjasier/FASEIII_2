@@ -28,6 +28,8 @@ La solución propuesta permite a los usuarios crear visualizaciones de datos med
 Algunas limitaciones que tenemos ahora mismo son:
 - El contexto del la base de datos es la estructura del *schema* "public" completo así como las relaciones entre tablas. En caso de escalar mucho la base de datos, el precio de las llamadas a las APIs de LLMs podría ser costoso, por lo que se podría mejorar creando ciertas *tools* para que el propio modelo decida qué partes de la base de datos quiere conocer.
 
+- No se guardan los gráficos de los proyectos
+
 ## Como ejecutar con Docker
 ```sh
 docker-compose up
