@@ -25,12 +25,22 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Check if user is already logged in
+const AuthRedirect = () => {
+  // Check if user is authenticated (could be admin or regular user)
+  const isAuthenticated = localStorage.getItem('adminAuthenticated') === 'true' || 
+                         localStorage.getItem('userAuthenticated') === 'true';
+  
+  // If already authenticated, go to home, otherwise to login
+  return isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/login-user" replace />;
+};
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Redirect root to LoginUser page */}
-        <Route path="/" element={<Navigate to="/login-user" replace />} />
+        {/* Redirect root based on authentication status */}
+        <Route path="/" element={<AuthRedirect />} />
         
         {/* Admin login */}
         <Route path="/login" element={<Login />} />

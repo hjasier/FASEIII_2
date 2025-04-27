@@ -16,9 +16,10 @@ function CSVUpload() {
     useEffect(() => {
         const fetchTables = async () => {
             try {
-                const response = await axios.get('/tables');
-                if (response.data) {
-                    const response_tables = response.data.results.map((row) => row.table);
+                const response = await fetch('http://10.10.76.241:5454/tables');
+                const data = await response.json();
+                if (data) {
+                    const response_tables = data.results.map((row) => row.table);
                     console.log('Tables:', response_tables);
                     setTables(response_tables);
                     if (response_tables.length > 0) {
