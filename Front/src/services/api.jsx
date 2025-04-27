@@ -7,8 +7,31 @@ console.log('🔧 Environment Variables:', {
   hostname: window.location.hostname
 });
 
-// Get API URL (without any hostname detection logic)
-const API_URL = import.meta.env.VITE_API_URL || window.ENV?.VITE_API_URL || 'http://10.10.76.241:5454';
+// Function to determine the API URL
+function getApiUrl() {
+  // Check runtime environment variables first (from env-config.js)
+  if (window.ENV && window.ENV.VITE_API_URL) {
+    console.log('🔍 Using runtime ENV variable:', window.ENV.VITE_API_URL);
+    return window.ENV.VITE_API_URL;
+  }
+  
+  // Then check build-time variables
+  if (import.meta.env.VITE_API_URL) {
+    console.log('🔍 Using build-time ENV variable:', import.meta.env.VITE_API_URL);
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Last resort fallback
+  const fallbackUrl = `${window.location.protocol}//${window.location.hostname}:5454`;
+  console.log('⚠️ No ENV variable found, using fallback URL:', fallbackUrl);
+  return fallbackUrl;
+}
+
+// Add this line to show where the app is running from
+console.log('🌐 App running at:', window.location.href);
+
+// Get API URL using the function
+const API_URL = getApiUrl();
 
 // IMPORTANT: Log the final API URL for debugging
 console.log('🔧 Using API URL:', API_URL);
