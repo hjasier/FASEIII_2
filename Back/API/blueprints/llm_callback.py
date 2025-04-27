@@ -94,6 +94,15 @@ def generar_grafico(tipo_grafico, x, y, titulo="Gráfico"):
     return img_base64
 
 
+def generate_grafico_expert(tipo_grafico, x, y):
+    data = {
+        "chartType": tipo_grafico,
+        "x": x,
+        "y": y
+    }
+    return data
+
+
 def process_image_stream(base64, initial_prompt):
     
     response = client.chat.completions.create(
@@ -229,3 +238,97 @@ def explain_image():
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
     
     
+
+
+# Main endpoint
+@llm_bp.route('/expert-generate', methods=['POST'])
+def generate_expert():
+    user_question = request.json.get('question')
+    history = request.json.get('history')
+    
+    prompt = [
+        {"role": "system", "content": f"Eres un asistente que genera graficos o queries SQL basadas en el schema: {table_schema} , CONTEXTO DEL HISTORIAL : {history}"
+        },
+        {"role": "user", "content": user_question}
+        ]
+
+    response = client.chat.completions.create(
+    model="gpt-4-turbo",  # o el que uses
+    messages=prompt,
+    temperature=0,
+    top_p=1
+    )
+
+    response_message = response.choices[0].message.content
+
+    
+    match = re.search(r"```(?:\w+\n)?(.*?)```", response_message, re.DOTALL)
+
+    if not match:
+        return jsonify({'error': 'No se encontró código SQL en la respuesta del modelo'}), 400
+
+    sql_query = match.group(1).strip()
+
+    db_data = query(sql_query)
+    
+    muestra_db_data = db_data[:3] + db_data[-3:]
+    num_registros = len(db_data)
+
+
+
+    # Segunda llamada para graficar
+    prompt.append(AssistantMessage(response_message))
+    prompt.append(UserMessage(
+        f"Ejemplo de los datos: {muestra_db_data}. "
+        f"El conjunto completo contiene {num_registros} registros similares. "
+        f"Si corresponde, genera un gráfico usando las herramientas disponibles. "
+        f"Además, siempre explica en texto qué muestra el gráfico o los datos, para ayudar al usuario a entenderlos. Usa markdown para formatear la respuesta."
+    ))
+    
+    
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "generate_grafico_expert",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tipo_grafico": {"type": "string", "enum": ["bar", "line", "scatter", "pie"]},
+                    "x": {"type": "array", "items": {"type": "string"}},
+                    "y": {"type": "array", "items": {"type": "number"}}
+                },
+                "required": ["tipo_grafico", "x"]
+            }
+        }
+    }]
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=prompt,
+        tools=tools,
+        temperature=0,
+        top_p=1
+    )
+    message = response.choices[0].message
+
+    if hasattr(message, "tool_calls") and message.tool_calls:
+        tool_call = message.tool_calls[0]
+        arguments = json.loads(tool_call.function.arguments)
+
+        graph_data = generate_grafico_expert(
+            tipo_grafico=arguments['tipo_grafico'],
+            x=arguments['x'],
+            y=arguments['y']
+        )
+
+        return jsonify({
+            'type': 'plot',
+            'data': graph_data,
+        })
+
+    return jsonify({
+        'type': 'sql_query',
+        'query': sql_query
+    })
+    
+
