@@ -2,6 +2,7 @@
 
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import LoginUser from './pages/LoginUser';
 import Home from './pages/Home';
 import Tables from './pages/Tables';
 import Projects from './pages/Projects';
@@ -10,6 +11,7 @@ import SensorDashboard from './pages/SensorDashboard';
 import Realtime from './pages/Realtime';
 import LLMChat from './pages/LLMChat';
 import Admin from './pages/Admin';
+import CSVUpload from './pages/CSVUpload';
 import { useEffect, useState } from 'react';
 
 // Protected route component
@@ -23,17 +25,22 @@ const ProtectedRoute = ({ children }) => {
 
   return children;
 };
+
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Redirect root to LoginUser page */}
+        <Route path="/" element={<Navigate to="/login-user" replace />} />
+        
+        {/* Admin login */}
         <Route path="/login" element={<Login />} />
+        
+        {/* User login/register */}
+        <Route path="/login-user" element={<LoginUser />} />
 
-        {/* Rutas protegidas */}
-
-        <Route path="/" element={
-          <Home />
-        } />
+        {/* Home now accessible after login */}
+        <Route path="/home" element={<Home />} />
 
         <Route path="/tables"
           element={
@@ -75,8 +82,16 @@ function App() {
           }
         />
 
-        {/* Chat */}
+        {/* CSV Upload route with protection */}
+        <Route path="/admin/csv-upload"
+          element={
+            <ProtectedRoute>
+              <CSVUpload />
+            </ProtectedRoute>
+          }
+        />
 
+        {/* Chat */}
         {<Route path="/chat"
           element={
             <LLMChat />

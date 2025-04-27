@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Exponer el puerto en el que la API escucha
-EXPOSE 5000
+EXPOSE 5454
 
 # Comando para ejecutar la API
-CMD ["gunicorn", "-w", "4", "app:app", "-b", "0.0.0.0:5000"]
+CMD ["gunicorn", "-w", "4", "app:app", "-b", "0.0.0.0:5454"]
 
