@@ -136,9 +136,11 @@ const MetricChart = ({ metric, data, color, sensorType, activeTimestamp, onMouse
   const units = metricThreshold?.units || '';
   const formattedMetricName = getMetricDisplayName(metric);
   
-  // Find the active data point (kept for internal usage even though we don't display it)
-  const activePoint = activeTimestamp ? 
-    data.find(d => d.timestamp === activeTimestamp) : null;
+  // Calculate min, max, and average values
+  const metricValues = data.map(item => item[metric]).filter(val => val !== undefined);
+  const minValue = Math.min(...metricValues);
+  const maxValue = Math.max(...metricValues);
+  const avgValue = metricValues.reduce((sum, val) => sum + val, 0) / metricValues.length;
     
   return (
     <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
@@ -180,6 +182,46 @@ const MetricChart = ({ metric, data, color, sensorType, activeTimestamp, onMouse
               labelFormatter={(label) => `Tiempo: ${label}`}
               isAnimationActive={false}
             />
+            
+            {/* Reference line for Min value */}
+            <ReferenceLine 
+              y={minValue} 
+              stroke="#3B82F6" 
+              strokeDasharray="3 3" 
+              label={{ 
+                value: `Min: ${minValue.toFixed(1)}`, 
+                fill: '#3B82F6', 
+                fontSize: 10,
+                position: 'insideBottomLeft'
+              }} 
+            />
+            
+            {/* Reference line for Max value */}
+            <ReferenceLine 
+              y={maxValue} 
+              stroke="#EF4444" 
+              strokeDasharray="3 3" 
+              label={{ 
+                value: `Max: ${maxValue.toFixed(1)}`, 
+                fill: '#EF4444', 
+                fontSize: 10,
+                position: 'insideTopLeft'
+              }} 
+            />
+            
+            {/* Reference line for Average value */}
+            <ReferenceLine 
+              y={avgValue} 
+              stroke="#8B5CF6" 
+              strokeWidth={1.5}
+              label={{ 
+                value: `Avg: ${avgValue.toFixed(1)}`, 
+                fill: '#8B5CF6', 
+                fontSize: 10,
+                position: 'insideTopRight'
+              }} 
+            />
+            
             <Line 
               type="monotone" 
               dataKey={metric} 
@@ -189,7 +231,8 @@ const MetricChart = ({ metric, data, color, sensorType, activeTimestamp, onMouse
               activeDot={{ r: 5 }} 
               isAnimationActive={false} 
             />
-            {/* Improved vertical line that follows mouse position across all charts */}
+            
+            {/* Vertical line that follows mouse position */}
             {activeTimestamp && (
               <ReferenceLine 
                 x={activeTimestamp} 

@@ -1,11 +1,7 @@
 
 
 
-CREATE ROLE readonly_user LOGIN PASSWORD 'asdf'; 
-REVOKE ALL ON SCHEMA public FROM readonly_user; 
-GRANT USAGE ON SCHEMA public TO readonly_user; 
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_user; 
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly_user;
+
 
 # Funcionalidades implementadas
 Nuestro diseño se ha basado en separar 2 tipos de usuarios: Normales y Expertos. El usuario normal es cualquier ciudadano que quiera acceder a los datos de forma no técnica para responder a sus dudas sobre la gestión de la cuidad. Por otro lado, el usuario experto es aquel que tiene experiencia con SQL, descargando datos y ciertos conocimientos técnicos.
