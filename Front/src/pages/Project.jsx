@@ -245,69 +245,66 @@
         navigate('/projects');
       };
 
-      const handleExecuteQuery = () => {
-        if (!sqlQuery.trim()) return;
-        
+      const handleExecuteQuery = async () => {
+        const queryText = sqlQuery.trim();
+        if (!queryText) return;
+      
         setIsExecuting(true);
         setError(null);
-        
-        // In a real app, this would be an API call to execute the SQL
-        setTimeout(() => {
-          try {
-            // Mock SQL execution - this is just a simulation
-            const query = sqlQuery.toLowerCase();
-            
-            if (query.includes('select') && query.includes('from')) {
-              // Mock result for select query
-              const mockResult = {
-                id: `result-${Date.now()}`,
-                name: 'Query Result',
-                columns: [
-                  { name: 'hospital_nombre', type: 'varchar' },
-                  { name: 'num_emergencias', type: 'integer' },
-                  { name: 'gravedad_promedio', type: 'float' },
-                ],
-                rows: [
-                  { hospital_nombre: 'Hospital Central', num_emergencias: 245, gravedad_promedio: 3.7 },
-                  { hospital_nombre: 'Clínica Norte', num_emergencias: 187, gravedad_promedio: 2.9 },
-                  { hospital_nombre: 'Hospital Universitario', num_emergencias: 312, gravedad_promedio: 4.2 },
-                ]
-              };
-              
-              setQueryResult(mockResult);
-              setShowResultPreview(true);
-              
-            } else if (query.includes('join')) {
-              // Mock result for join query
-              const mockResult = {
-                id: `result-${Date.now()}`,
-                name: 'Join Result',
-                columns: [
-                  { name: 'nombre', type: 'varchar' },
-                  { name: 'tipo', type: 'varchar' },
-                  { name: 'fecha', type: 'date' },
-                  { name: 'gravedad', type: 'integer' },
-                ],
-                rows: [
-                  { nombre: 'Hospital Central', tipo: 'Trauma', fecha: '2025-04-10', gravedad: 4 },
-                  { nombre: 'Hospital Central', tipo: 'Respiratorio', fecha: '2025-04-12', gravedad: 3 },
-                  { nombre: 'Clínica Norte', tipo: 'Cardiaco', fecha: '2025-04-15', gravedad: 5 },
-                ]
-              };
-              
-              setQueryResult(mockResult);
-              setShowResultPreview(true);
-              
-            } else {
-              throw new Error('Consulta no soportada. Por favor use consultas SELECT o JOIN.');
-            }
-            
-          } catch (err) {
-            setError(err.message);
-          } finally {
-            setIsExecuting(false);
+        setShowResultPreview(false);
+      
+        try {
+          const resp = await fetch('http://127.0.0.1:5454/expert_query', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: queryText })
+          });
+      
+          const payload = await resp.json();
+      
+          if (!resp.ok || payload.status === 'error') {
+            // backend will include a user‐friendly message
+            throw new Error(payload.message || 'Error ejecutando la consulta');
           }
-        }, 800);
+      
+          const rows = payload.results;
+          if (!Array.isArray(rows) || rows.length === 0) {
+            throw new Error('La consulta no devolvió filas.');
+          }
+      
+          // Derivar columnas a partir de la primera fila
+          const firstRow = rows[0];
+          const columns = Object.keys(firstRow).map((name) => {
+            const value = firstRow[name];
+            let type = typeof value;
+            if (value instanceof Date || /\d{4}-\d{2}-\d{2}/.test(String(value))) {
+              type = 'date';
+            } else if (type === 'number' && Number.isInteger(value)) {
+              type = 'integer';
+            } else if (type === 'number') {
+              type = 'float';
+            } else {
+              type = 'varchar';
+            }
+            return { name, type };
+          });
+      
+          setQueryResult({
+            id: `result-${Date.now()}`,
+            name: 'Query Result',
+            columns,
+            rows
+          });
+          setShowResultPreview(true);
+      
+        } catch (err) {
+          console.error(err);
+          setError(err.message);
+        } finally {
+          setIsExecuting(false);
+        }
       };
 
       const handleAddQueryResult = () => {
