@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login'; // Import the Login component
+import { apiService } from '../services/api';
 
 function Admin() {
     const [query, setQuery] = useState('');
@@ -73,7 +74,7 @@ function Admin() {
 
         return new Promise(async (resolve) => {
             try {
-                const { data, status } = await axios.post('http://localhost:5454/admin_query', { query: sql });
+                const { data, status } = await apiService.post('/admin_query', { query: sql });
 
                 if (status !== 200) {
                     console.error('Error executing query:', data);

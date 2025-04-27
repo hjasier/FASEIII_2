@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '../services/api';
 
 function Tables() {
   const [tables, setTables] = useState([]);
@@ -25,10 +26,11 @@ function Tables() {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5454/tables');
-        const data = await response.json();
-        console.log(data);
-        if (response.ok) {
+        setIsLoading(true);
+        const data = await apiService.get('/tables');
+        console.log('Tables data received:', data);
+        
+        if (data && data.results) {
           const fetchedTables = data.results.map((item, index) => {
             // Determine category based on table name
             const tableName = item.table.toLowerCase();
@@ -40,7 +42,6 @@ function Tables() {
                 assignedCategory = category;
                 break; // Use the first matching category
               }
-
             }
 
             if (tableName.includes("cit")) {
@@ -59,7 +60,7 @@ function Tables() {
           setTables(fetchedTables);
           setFilteredTables(fetchedTables);
         } else {
-          console.error('Error fetching tables:', data.error);
+          console.error('Error fetching tables: Invalid response format');
         }
       } catch (error) {
         console.error('Error fetching tables:', error);
@@ -123,7 +124,6 @@ function Tables() {
     navigate('/');
   };
 
-
   const handleExport = async (type) => {
     if (selectedTables.length === 0) return;
 
@@ -132,44 +132,25 @@ function Tables() {
     console.log(`Tables to download as ${type}:`, selectedNames);
 
     try {
-      const res = await fetch("http://127.0.0.1:5454/export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tables: selectedNames,
-          type: type
-        }),
+      // Use axios-based post method, data is provided as an object directly
+      const response = await apiService.post('/export', {
+        tables: selectedNames,
+        type: type
       });
 
-      if (!res.ok) {
-        // try to pull the JSON error message
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Error al exportar tablas");
-      }
-
-      const blob = await res.blob();
-      // figure out the filename from Content-Disposition, or fallback:
-      let filename = `export_tables.${type}.zip`;
-      const cd = res.headers.get("content-disposition");
-      if (cd) {
-        const m = cd.match(/filename\*?=['"]?(?:UTF-8'')?(.+?)['"]?(;|$)/);
-        if (m) filename = decodeURIComponent(m[1]);
-      }
-
-      // download
+      // Create and download the file
+      const blob = new Blob([response.data], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename;
+      a.download = `export_tables.${type}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      alert(error.message || 'Error exporting tables');
     }
   };
 
@@ -189,10 +170,10 @@ function Tables() {
   const handlePreviewClick = async (tableName) => {
     try {
       // Fetch columns for the selected table from the API
-      const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
-      const data = await response.json();
+      // With Axios, the response is already parsed to JSON
+      const data = await apiService.get(`/columns/${tableName}`);
 
-      if (data.metadata.status === 'success') {
+      if (data && data.metadata && data.metadata.status === 'success') {
         // Log the retrieved column data to the console for debugging
         console.log('Retrieved columns data:', data.results);
 
@@ -207,7 +188,7 @@ function Tables() {
           })),
         });
       } else {
-        console.error('Error fetching columns:', data.metadata.message);
+        console.error('Error fetching columns:', data?.metadata?.message || 'Unknown error');
         alert('Error fetching table columns');
       }
     } catch (error) {

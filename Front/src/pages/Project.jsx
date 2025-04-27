@@ -1,4 +1,4 @@
-    // First, install Recharts:
+// First, install Recharts:
     // npm install recharts
 
     import React, { useState, useEffect, useCallback, useRef, useReducer } from 'react';
@@ -14,6 +14,7 @@
     import 'reactflow/dist/style.css';
     import TableNode from '../components/TableNode';
     import ChartNode from '../components/ChartNode';
+import {apiService} from '../services/api';
 
 
     // Node types
@@ -63,38 +64,22 @@
           
           const tableName = node.data.label;
           
-          fetch('http://127.0.0.1:5454/export', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tables: [tableName],
-              type: 'csv'
+          apiService.exportTable({ tables: [tableName], type: 'csv' })
+            .then(blob => {
+              // Create a download link and trigger it
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${tableName}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
             })
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            // Create a download link and trigger it
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${tableName}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-          })
-          .catch(error => {
-            console.error('Error downloading table:', error);
-            alert(`Error al descargar la tabla: ${error.message}`);
-          });
-          
+            .catch(error => {
+              console.error('Error downloading table:', error);
+              alert(`Error al descargar la tabla: ${error.message}`);
+            });    
           return currentNodes; // Return unchanged nodes
         });
       }, []); // Remove nodes dependency
@@ -136,12 +121,12 @@
 
             // Fetch column data for each table
             const tablesWithColumns = [];
-            
+
             for (let i = 0; i < tableNames.length; i++) {
               const tableName = tableNames[i];
               try {
-                const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
-                const data = await response.json();
+                // With Axios, data is already parsed - no need for response.json()
+                const data = await apiService.get(`/columns/${tableName}`);
                 
                 if (data.metadata.status === 'success') {
                   // Transform the API response to our table format
@@ -211,7 +196,7 @@
       // Function to fetch data for a specific table
       const fetchTableData = async (tableName) => {
         try {
-          const response = await fetch('http://127.0.0.1:5454/export', {
+          const response = await apiService.post('/export', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -254,7 +239,7 @@
         setShowResultPreview(false);
       
         try {
-          const resp = await fetch('http://127.0.0.1:5454/expert_query', {
+          const resp = await apiService.post('/expert_query', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

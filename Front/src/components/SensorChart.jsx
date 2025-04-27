@@ -5,6 +5,7 @@ import {
   Tooltip, Legend, ResponsiveContainer, ReferenceLine 
 } from 'recharts';
 import PropTypes from 'prop-types';
+import { apiService } from '../services/api';
 
 // Color palette for different metrics (using Home.jsx color scheme)
 const colors = [
@@ -339,19 +340,19 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
         
         if (sensorId) {
           // Fetch data for a specific sensor
-          url = `http://localhost:5454/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`;
+          url = `/api/greenlake-eval/sensors/sensor-data?sensor_id=${sensorId}`;
         } else if (activeSelectedCity) {
           // Fetch data for a selected city
-          url = `http://localhost:5454/api/greenlake-eval/sensors/data/${activeSelectedCity}`;
+          url = `/api/greenlake-eval/sensors/data/${activeSelectedCity}`;
         } else {
           // Fetch all data (fallback)
-          url = `http://localhost:5454/api/greenlake-eval/sensors/data`;
+          url = `/api/greenlake-eval/sensors/data`;
         }
-        
-        const response = await axios.get(url);
-        
+
+        const response = await apiService.get(url);
+
         // Process data based on sensor type
-        processDataForChart(response.data, sensorType);
+        processDataForChart(response, sensorType);
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch sensor data');
