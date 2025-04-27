@@ -9,12 +9,9 @@ from blueprints.api_greenlake_br import api_bp
 from blueprints.database import database_bp
 from blueprints.query_br import q_br
 from blueprints.llm_callback import llm_bp
-<<<<<<< HEAD
 from blueprints.export_br import export_bp
-=======
 from blueprints.auth import auth_bp  # Import the auth blueprint
 from blueprints.projects import projects_bp  # Import the projects blueprint
->>>>>>> 4943c4d893bf21d67008079e994185fb9d32c22f
 from flask_cors import CORS
 
 app = Flask(__name__)  # crea la aplicación
@@ -29,13 +26,9 @@ app.register_blueprint(kafka_bp)
 app.register_blueprint(database_bp)
 app.register_blueprint(q_br)
 app.register_blueprint(llm_bp)
-<<<<<<< HEAD
 app.register_blueprint(export_bp)
-
-=======
 app.register_blueprint(auth_bp, url_prefix='/auth')  # Register the auth blueprint
 app.register_blueprint(projects_bp, url_prefix='/projects')  # Register the projects blueprint
->>>>>>> 4943c4d893bf21d67008079e994185fb9d32c22f
 
 if __name__ == '__main__':
     # Use standard Flask run method instead of socketio.run
