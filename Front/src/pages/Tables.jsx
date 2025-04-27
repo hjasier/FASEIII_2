@@ -132,7 +132,7 @@ function Tables() {
         },
         body: JSON.stringify({
           project_name: projectName,
-          description: projectDescription,
+          description: projectDescription, // This is already correct
           tables: selectedTableNames
         }),
         credentials: 'include'
