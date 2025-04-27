@@ -14,7 +14,7 @@
     import 'reactflow/dist/style.css';
     import TableNode from '../components/TableNode';
     import ChartNode from '../components/ChartNode';
-
+    import ChatBox from '../components/ChatBox';
 
     // Node types
     const nodeTypes = {
@@ -43,7 +43,8 @@
       const [isCreatingChart, setIsCreatingChart] = useState(false);
       const reactFlowWrapper = useRef(null);
       const [reactFlowInstance, setReactFlowInstance] = useState(null);
-
+      // Add after your existing state declarations
+      const [isChatOpen, setIsChatOpen] = useState(false);
 
 
 
@@ -560,6 +561,50 @@
         )}
         
         <div className="flex flex-1 overflow-hidden">
+      {/* ChatBox */}
+      {!isLoading && project && (
+        <ChatBox 
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+          onExecuteQuery={(query) => {
+            setSqlQuery(query);
+            setIsChatOpen(false);
+            handleExecuteQuery();
+          }}
+          onCreateChart={(chartConfig) => {
+            // Find the table node
+            const tableNode = nodes.find(node => 
+              node.type === 'tableNode' && 
+              node.data.label === chartConfig.tableName
+            );
+            
+            if (tableNode) {
+              setSelectedTable(tableNode);
+              setChartTitle(chartConfig.title);
+              setChartType(chartConfig.chartType);
+              setXAxisColumn(chartConfig.xAxis);
+              setYAxisColumn(chartConfig.yAxis);
+              handleCreateChartConfirm();
+            }
+          }}
+          tables={project?.tables || []}
+        />
+      )}
+      
+      {/* Chat toggle button - visible when chat is closed */}
+      {!isChatOpen && (
+        <button 
+          onClick={() => setIsChatOpen(true)}
+          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md rounded-r-lg px-2 py-4 z-10 border border-l-0 border-gray-200"
+          aria-label="Open chat"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#36C78D]" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+        </button>
+      )}
+
+      
           {/* Canvas area */}
           <div className="flex-1 flex flex-col">
             <div ref={reactFlowWrapper} className="flex-1 h-0">

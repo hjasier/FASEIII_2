@@ -25,3 +25,4 @@ matplotlib
 openpyxl
 azure-ai-inference
 jwt
+PyJWT
