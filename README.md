@@ -19,7 +19,7 @@ Antes de la interfaz de administrador hay un inicio de sesión que solo permite 
 # Casos de uso incluidos y explicación de su valor
 La solución propuesta permite a los usuarios crear visualizaciones de datos mediante el uso de lenguaje natural. Ademas se han incluido datos como taxistas , coches y viajes (obtenidos mediante open source intelligent) a la base de datos final. Mediante el uso del LLM se ha generado el siguiente query: 
 
-`SELECT s.id, s.city_id, s.name, st.flow_rate, st.event_time FROM sensors AS s INNER JOIN sensor_metrics_traffic AS st ON s.id = st.sensor_id WHERE st.event_time >= CURRENT_DATE - INTERVAL '7 days' ORDER BY st.event_time DESC LIMIT 100;`
+`SELECT t.origin, t.destiny, SUM(t.co2_emissions_grams_per_km * CAST(t.km AS DECIMAL)) AS total_co2_grams, COUNT(*) AS num_trips FROM trips t JOIN taxi_drivers td ON t.taxista_id = td.people_id GROUP BY t.origin, t.destiny ORDER BY total_co2_grams DESC`
 
  Con esto se nos permite saber potenciales rutas que los ciudadanos demandan y que mas contaminación genera, por lo tanto también resultan potenciales viajes a los que el transporte publico podría expandirse. Ademas la posiblidad de monitorear datos en tiempo real mediante kafka permite tambien al ciudadano saber el estado del trafico, como el estado del aire y del agua. Con todo esto buscamos un desarrollo sostenible y transparente. Tambien permitimos la descarga de todos los datasets disponibles con el fin de que cada ciudadano pueda extraer y estudiar los datos. 
 
