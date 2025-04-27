@@ -7,10 +7,6 @@ function getApiUrl() {
     return import.meta.env.VITE_API_URL;
   }
   
-  // For local development
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5454';
-  }
   
   // For production: use same hostname but backend port
   return `${window.location.protocol}//${window.location.hostname}:5454`;
