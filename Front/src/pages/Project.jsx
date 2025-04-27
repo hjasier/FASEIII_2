@@ -64,41 +64,82 @@
           
           const tableName = node.data.label;
           
-          fetch('http://127.0.0.1:5454/export', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tables: [tableName],
-              type: 'csv'
+          // Check if this is a query result table
+          const isQueryResult = tableName.startsWith('Resultado:');
+          
+          if (isQueryResult) {
+            // Extract the query from the label
+            const query = tableName.replace('Resultado: ', '');
+            
+            fetch('http://127.0.0.1:5454/export_query', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                query: query,
+                type: 'csv'
+              })
             })
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            // Create a download link and trigger it
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${tableName}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-          })
-          .catch(error => {
-            console.error('Error downloading table:', error);
-            alert(`Error al descargar la tabla: ${error.message}`);
-          });
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              // Create a download link and trigger it
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `query_result.csv`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            })
+            .catch(error => {
+              console.error('Error downloading query result:', error);
+              alert(`Error al descargar el resultado de la consulta: ${error.message}`);
+            });
+          } else {
+            // Original code for regular tables
+            fetch('http://127.0.0.1:5454/export', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tables: [tableName],
+                type: 'csv'
+              })
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              // Create a download link and trigger it
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${tableName}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            })
+            .catch(error => {
+              console.error('Error downloading table:', error);
+              alert(`Error al descargar la tabla: ${error.message}`);
+            });
+          }
           
           return currentNodes; // Return unchanged nodes
         });
-      }, []); // Remove nodes dependency
+      }, []);
 
       const handleCreateChart = useCallback((tableId) => {
         setNodes(currentNodes => {
@@ -294,7 +335,7 @@
       
           setQueryResult({
             id: `result-${Date.now()}`,
-            name: 'Query Result',
+            name: queryText,
             columns,
             rows
           });

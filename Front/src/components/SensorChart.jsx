@@ -12,6 +12,45 @@ const colors = [
   '#ff8042', '#a4de6c', '#d0ed57', '#83a6ed'
 ];
 
+// Spanish translations for metric names
+const metricNamesSpanish = {
+  // Air metrics
+  'co': 'Monóxido de Carbono',
+  'o3': 'Ozono',
+  'co2': 'Dióxido de Carbono',
+  'no2': 'Dióxido de Nitrógeno',
+  'so2': 'Dióxido de Azufre',
+  'pm10': 'Partículas PM10',
+  
+  // Ambient metrics
+  'humidity': 'Humedad',
+  'temperature': 'Temperatura',
+  'solar_radiation': 'Radiación Solar',
+  
+  // Traffic metrics
+  'avg_speed': 'Velocidad Promedio',
+  'flow_rate': 'Flujo de Tráfico',
+  'occupancy': 'Ocupación',
+  'vehicle_density': 'Densidad de Vehículos',
+  'congestion_index': 'Índice de Congestión',
+  
+  // Water quality metrics
+  'ph_level': 'Nivel de pH',
+  'turbidity': 'Turbidez',
+  'conductivity': 'Conductividad',
+  'dissolved_oxygen': 'Oxígeno Disuelto',
+  'water_temperature': 'Temperatura del Agua',
+  
+  // Water usage metrics
+  'usage_liters': 'Consumo en Litros',
+  'total_daily_usage': 'Consumo Diario Total'
+};
+
+// Function to get Spanish metric name or fallback to formatted original
+const getMetricDisplayName = (metric) => {
+  return metricNamesSpanish[metric] || metric.replace(/_/g, ' ');
+};
+
 // Define thresholds for each metric to determine color scale
 const thresholds = {
   // Air quality metrics (lower is better)
@@ -95,7 +134,7 @@ const getMetricColor = (metric, value, sensorType) => {
 const MetricChart = ({ metric, data, color, sensorType, activeTimestamp, onMouseMove, onMouseLeave }) => {
   const metricThreshold = thresholds[sensorType]?.[metric];
   const units = metricThreshold?.units || '';
-  const formattedMetricName = metric.replace(/_/g, ' ');
+  const formattedMetricName = getMetricDisplayName(metric);
   
   // Find the active data point (kept for internal usage even though we don't display it)
   const activePoint = activeTimestamp ? 
@@ -199,7 +238,7 @@ const CurrentValueView = ({ metrics, sensorType, latestData }) => {
             className="p-6 rounded-lg shadow-md border flex flex-col items-center justify-center"
             style={{ borderColor: color }}
           >
-            <h3 className="text-lg font-medium text-gray-700 mb-2 capitalize">{metric.replace(/_/g, ' ')}</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2 capitalize">{getMetricDisplayName(metric)}</h3>
             <div className="flex items-baseline">
               <span className="text-4xl font-bold" style={{ color }}>{value.toFixed(1)}</span>
               <span className="ml-2 text-gray-500 text-lg">{units}</span>
