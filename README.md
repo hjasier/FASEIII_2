@@ -32,3 +32,7 @@ Algunas limitaciones que tenemos ahora mismo son:
 ```sh
 docker-compose up
 ```
+![postspark_export_2025-04-27_12-07-33](https://github.com/user-attachments/assets/6da29a59-cf5e-4de5-abab-2382741c677c)
+
+
+
