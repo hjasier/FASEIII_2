@@ -91,6 +91,59 @@ const getMetricColor = (metric, value, sensorType) => {
   }
 };
 
+// Component to display single metric chart
+const MetricChart = ({ metric, data, color, sensorType }) => {
+  const metricThreshold = thresholds[sensorType]?.[metric];
+  const units = metricThreshold?.units || '';
+  const formattedMetricName = metric.replace(/_/g, ' ');
+  
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+      <h3 className="text-lg font-medium text-gray-700 mb-2 capitalize">{formattedMetricName} <span className="text-gray-500 text-sm">({units})</span></h3>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <XAxis 
+              dataKey="timestamp" 
+              tick={{ fill: '#4B5563', fontSize: 10 }} 
+              tickFormatter={(value) => {
+                // Show shorter time format (HH:MM)
+                const parts = value.split(':');
+                return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : value;
+              }}
+            />
+            <YAxis tick={{ fill: '#4B5563', fontSize: 10 }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                borderRadius: '0.25rem',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)', 
+                border: '1px solid #E5E7EB',
+                fontSize: '0.75rem'
+              }}
+              formatter={(value) => [`${value} ${units}`, formattedMetricName]}
+              labelFormatter={(label) => `Tiempo: ${label}`}
+            />
+            <Line 
+              type="monotone" 
+              dataKey={metric} 
+              stroke={color} 
+              strokeWidth={2}
+              dot={{ r: 2 }}
+              activeDot={{ r: 5 }} 
+              isAnimationActive={false} 
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
 // Component to display current values
 const CurrentValueView = ({ metrics, sensorType, latestData }) => {
   if (!latestData || Object.keys(latestData).length === 0) {
@@ -102,7 +155,7 @@ const CurrentValueView = ({ metrics, sensorType, latestData }) => {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
       {metrics.map(metric => {
         const value = latestData[metric];
         if (value === undefined) return null;
@@ -114,13 +167,13 @@ const CurrentValueView = ({ metrics, sensorType, latestData }) => {
         return (
           <div 
             key={metric} 
-            className="p-4 rounded-lg shadow-sm border flex flex-col items-center justify-center"
+            className="p-6 rounded-lg shadow-md border flex flex-col items-center justify-center"
             style={{ borderColor: color }}
           >
-            <h3 className="text-lg font-medium text-gray-700 mb-1">{metric.replace(/_/g, ' ')}</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2 capitalize">{metric.replace(/_/g, ' ')}</h3>
             <div className="flex items-baseline">
-              <span className="text-3xl font-bold" style={{ color }}>{value.toFixed(1)}</span>
-              <span className="ml-1 text-gray-500">{units}</span>
+              <span className="text-4xl font-bold" style={{ color }}>{value.toFixed(1)}</span>
+              <span className="ml-2 text-gray-500 text-lg">{units}</span>
             </div>
           </div>
         );
@@ -129,14 +182,16 @@ const CurrentValueView = ({ metrics, sensorType, latestData }) => {
   );
 };
 
-const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities }) => {
+const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities, viewMode, onViewModeChange }) => {
   const [sensorData, setSensorData] = useState([]);
   const [formattedData, setFormattedData] = useState([]);
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [chartTitle, setChartTitle] = useState('Sensor Data');
-  const [viewMode, setViewMode] = useState('history'); // 'history' or 'current'
+  // Use view mode from props if provided, otherwise use local state
+  const [localViewMode, setLocalViewMode] = useState('history');
+  const activeViewMode = viewMode !== undefined ? viewMode : localViewMode;
   // Add a ref to track the existing data points by ID
   const processedDataPoints = useRef(new Set());
   // Max number of points to display
@@ -260,7 +315,7 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities 
           : data;
         
         if (filteredData.length === 0) {
-          setError(`No data found for sensor type: ${type}`);
+          setError(`No hay datos disponibles para ${sensorTitles[type] || type}`);
           return;
         }
         
@@ -426,12 +481,16 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities 
 
   // Toggle between history and current view
   const toggleViewMode = () => {
-    setViewMode(viewMode === 'history' ? 'current' : 'history');
+    if (onViewModeChange) {
+      onViewModeChange();
+    } else {
+      setLocalViewMode(localViewMode === 'history' ? 'current' : 'history');
+    }
   };
 
   if (loading && formattedData.length === 0) 
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64">
         <div className="flex items-center">
           <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-[#36C78D]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -444,7 +503,7 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities 
   
   if (error && formattedData.length === 0) 
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64">
         <div className="text-red-500 text-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -457,63 +516,20 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities 
   const latestValues = getLatestValues();
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow mb-8">
-      {/* Header with controls */}
-      <div className="flex flex-wrap justify-between items-center mb-4">
-        <div>
-          {/* City selection if using local state */}
-          {usingLocalCityState && (
-            <div className="mb-4 flex items-center">
-              <label htmlFor="city-select" className="mr-3 text-gray-700 font-medium">Ciudad:</label>
-              <select 
-                id="city-select"
-                value={activeSelectedCity} 
-                onChange={handleCityChange}
-                className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#36C78D] focus:border-transparent"
-              >
-                {activeCities.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          
-          <h2 className="text-xl font-bold text-gray-800">{chartTitle}</h2>
-        </div>
+    <div className="w-full">
+      {/* Header with title and loading indicator */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">{chartTitle}</h2>
         
-        {/* View mode toggle */}
-        <div className="flex items-center space-x-2">
-          <button 
-            onClick={toggleViewMode}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'history' 
-                ? 'bg-[#36C78D] text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Histórico
-          </button>
-          <button 
-            onClick={toggleViewMode}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'current' 
-                ? 'bg-[#36C78D] text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Valores Actuales
-          </button>
-          
-          {loading && (
-            <div className="flex items-center text-sm text-gray-500 ml-2">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#36C78D]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Actualizando datos...
-            </div>
-          )}
-        </div>
+        {loading && (
+          <div className="flex items-center text-sm text-gray-500">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#36C78D]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Actualizando datos...
+          </div>
+        )}
       </div>
       
       {/* Content based on view mode */}
@@ -521,46 +537,18 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities 
         <div className="flex justify-center items-center h-64 border border-gray-200 rounded-lg bg-gray-50">
           <p className="text-gray-500">No hay datos disponibles para esta ciudad/tipo de sensor</p>
         </div>
-      ) : viewMode === 'history' ? (
-        // Historical view with line charts
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
+      ) : activeViewMode === 'history' ? (
+        // Historical view with individual charts for each metric
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {metrics.map((metric, index) => (
+            <MetricChart 
+              key={metric}
+              metric={metric}
               data={formattedData}
-              margin={{
-                top: 10,
-                right: 30,
-                left: 20,
-                bottom: 10,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="timestamp" tick={{ fill: '#4B5563' }} />
-              <YAxis tick={{ fill: '#4B5563' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
-                  border: '1px solid #E5E7EB' 
-                }} 
-              />
-              <Legend />
-              {metrics.map((metric, index) => (
-                <Line 
-                  key={metric}
-                  type="monotone" 
-                  dataKey={metric} 
-                  name={metric.replace(/_/g, ' ')}
-                  stroke={colors[index % colors.length]} 
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 6 }} 
-                  isAnimationActive={false} 
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+              color={colors[index % colors.length]}
+              sensorType={sensorType}
+            />
+          ))}
         </div>
       ) : (
         // Current values view
@@ -579,7 +567,9 @@ SensorChart.propTypes = {
   sensorType: PropTypes.oneOf(['air', 'ambient', 'traffic', 'water_quality', 'water_usage']),
   selectedCity: PropTypes.string,
   onCityChange: PropTypes.func,
-  cities: PropTypes.arrayOf(PropTypes.string)
+  cities: PropTypes.arrayOf(PropTypes.string),
+  viewMode: PropTypes.oneOf(['history', 'current']),
+  onViewModeChange: PropTypes.func
 };
 
 export default SensorChart;
