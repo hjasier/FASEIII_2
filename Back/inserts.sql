@@ -8,10 +8,17 @@ CREATE TABLE users.user_accounts (
     password_hash TEXT NOT NULL
 );
 
--- Create the user-table relations table
-CREATE TABLE users.user_table_relations (
+CREATE TABLE users.projects (
+    project_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    table_name VARCHAR(255) NOT NULL,
-    PRIMARY KEY (user_id, table_name),
+    project_name VARCHAR(255) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users.user_accounts(user_id) ON DELETE CASCADE
+);
+
+-- Create the project_tables table
+CREATE TABLE users.project_tables (
+    project_table_id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL,
+    table_name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES users.projects(project_id) ON DELETE CASCADE
 );

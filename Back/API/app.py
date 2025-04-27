@@ -10,6 +10,7 @@ from blueprints.database import database_bp
 from blueprints.query_br import q_br
 from blueprints.llm_callback import llm_bp
 from blueprints.auth import auth_bp  # Import the auth blueprint
+from blueprints.projects import projects_bp  # Import the projects blueprint
 from flask_cors import CORS
 
 app = Flask(__name__)  # crea la aplicación
@@ -25,6 +26,7 @@ app.register_blueprint(database_bp)
 app.register_blueprint(q_br)
 app.register_blueprint(llm_bp)
 app.register_blueprint(auth_bp, url_prefix='/auth')  # Register the auth blueprint
+app.register_blueprint(projects_bp, url_prefix='/projects')  # Register the projects blueprint
 
 if __name__ == '__main__':
     # Use standard Flask run method instead of socketio.run
