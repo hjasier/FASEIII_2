@@ -22,36 +22,34 @@ const SensorDashboard = () => {
   // Add this function to fetch cities in your Dashboard component where cities are loaded
   const fetchCities = async () => {
     try {
-      const data = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
-      console.log('Cities data:', data);
+      const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
+      console.log('Cities data:', response);
       
-      // Check the structure of the data to handle properly
+      // Extract the actual data from Axios response
+      const responseData = response.data;
+      
       let citiesList = [];
       
-      if (Array.isArray(data)) {
-        // If data is already an array of cities
-        citiesList = data;
-      } else if (data && Array.isArray(data.cities)) {
-        // If cities are in a property called 'cities'
-        citiesList = data.cities;
-      } else if (data && Array.isArray(data.results)) {
-        // If cities are in a property called 'results'
-        citiesList = data.results;
+      if (Array.isArray(responseData)) {
+        // Data is an array - this appears to be your case
+        citiesList = responseData;
+      } else if (responseData && Array.isArray(responseData.cities)) {
+        citiesList = responseData.cities;
+      } else if (responseData && Array.isArray(responseData.results)) {
+        citiesList = responseData.results;
       } else {
-        console.log("potato")
-        console.error('Unexpected cities data format:', data);
-        console.log(data)
+        console.error('Unexpected cities data format:', responseData);
         citiesList = [];
       }
       
-      // Parse city names depending on the format
+      // Parse city names - handle the array of arrays structure
       const cityNames = citiesList.map(city => {
         // Handle if city is a string
         if (typeof city === 'string') {
           return city;
         }
-        // Handle if city is an array like ["Barcelona"]
-        else if (Array.isArray(city)) {
+        // Handle if city is an array like ["Barcelona"] - this is your case
+        else if (Array.isArray(city) && city.length > 0) {
           return city[0];
         }
         // Handle if city is an object with a name property
