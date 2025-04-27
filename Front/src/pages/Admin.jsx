@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Login from './Login'; // Import the Login component
 
 function Admin() {
     const [query, setQuery] = useState('');
@@ -9,6 +10,17 @@ function Admin() {
     const [error, setError] = useState(null);
     const [history, setHistory] = useState([]);
     const navigate = useNavigate();
+
+    // Authentication state
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // Check for authentication on component mount
+    useEffect(() => {
+        const authStatus = localStorage.getItem('adminAuthenticated');
+        if (authStatus === 'true') {
+            setIsAuthenticated(true);
+        }
+    }, []);
 
     // Load query history from localStorage on component mount
     useEffect(() => {
@@ -94,9 +106,57 @@ function Admin() {
     };
 
     const handleLogout = () => {
-        // Clear admin authentication and redirect to home
+        // Clear admin authentication
         localStorage.removeItem('adminAuthenticated');
-        navigate('/');
+        setIsAuthenticated(false);
+        // Redirect to login with returnUrl to come back to admin
+        navigate('/login?returnUrl=/admin');
+    };
+
+    // Function to download the query results as CSV
+    const downloadResultsAsCSV = () => {
+        if (!results || !results.columns || !results.rows) {
+            setError('No hay resultados para descargar');
+            return;
+        }
+
+        try {
+            // Create CSV header row
+            let csvContent = results.columns.join(',') + '\n';
+
+            // Create CSV data rows
+            csvContent += results.rows.map(row => {
+                return results.columns.map(col => {
+                    // Handle null/undefined values
+                    const value = row[col] !== undefined ? String(row[col]) : '';
+
+                    // Handle values that need escaping (commas, quotes, newlines)
+                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                        // Escape quotes by doubling them and wrap in quotes
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                }).join(',');
+            }).join('\n');
+
+            // Create a Blob with the CSV content
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            // Create a download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+            link.href = url;
+            link.setAttribute('download', `query-results-${timestamp}.csv`);
+            document.body.appendChild(link);
+
+            // Trigger download and clean up
+            link.click();
+            URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+        } catch (err) {
+            setError('Error al descargar el archivo CSV: ' + err.message);
+        }
     };
 
     // Render table from results
@@ -151,6 +211,12 @@ function Admin() {
         );
     };
 
+    // If not authenticated, use the Login component
+    if (!isAuthenticated) {
+        return <Login />;
+    }
+
+    // Main admin interface if authenticated
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-green-50">
             {/* Header */}
@@ -180,7 +246,7 @@ function Admin() {
                 </div>
             </header>
 
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
                 {/* Back button */}
                 <div className="mb-6">
                     <button
@@ -253,11 +319,25 @@ function Admin() {
                         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-lg font-medium text-gray-900">Resultados</h2>
-                                {results && (
-                                    <span className="text-xs text-gray-500">
-                                        {results.rows ? `${results.rows.length} fila(s) encontrada(s)` : ''}
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {results && results.rows && results.rows.length > 0 && (
+                                        <>
+                                            <button
+                                                onClick={downloadResultsAsCSV}
+                                                className="flex items-center text-xs px-3 py-1.5 bg-[#36C78D] hover:bg-[#2da677] text-white rounded transition-colors"
+                                                title="Descargar resultados como CSV"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                                                </svg>
+                                                Descargar CSV
+                                            </button>
+                                            <span className="text-xs text-gray-500">
+                                                {`${results.rows.length} fila(s) encontrada(s)`}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             {isLoading ? (
@@ -285,24 +365,25 @@ function Admin() {
 
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => setQuery("SELECT * FROM users LIMIT 10;")}
+                                    onClick={() => setQuery("SELECT * FROM cities LIMIT 10;")}
                                     className="w-full py-2 px-3 text-left bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 transition-colors"
                                 >
-                                    SELECT * FROM users LIMIT 10;
+                                    SELECT * FROM cities LIMIT 10;
                                 </button>
 
                                 <button
-                                    onClick={() => setQuery("SELECT nombre, capacidad FROM hospitales WHERE especialidad = 'General';")}
+                                    onClick={() => setQuery("SELECT i.id, i.location, i.type, a.bay_count FROM public.cities c JOIN public.infrastructure i ON c.id = i.city_id JOIN public.infrastructure_auto_service a ON i.id = a.infra_id WHERE c.name = 'Vyrandel' AND a.electric_vehicle_charging is true;")}
                                     className="w-full py-2 px-3 text-left bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 transition-colors"
                                 >
-                                    SELECT nombre, capacidad FROM hospitales WHERE especialidad = 'General';
+                                    SELECT i.id, i.location, i.type, a.bay_count FROM public.cities c JOIN public.infrastructure i ON c.id = i.city_id JOIN public.infrastructure_auto_service a ON i.id = a.infra_id WHERE c.name = 'Vyrandel' AND a.electric_vehicle_charging is true;
                                 </button>
 
                                 <button
-                                    onClick={() => setQuery("INSERT INTO usuarios (nombre, email, role) VALUES ('Nuevo Usuario', 'nuevo@example.com', 'user');")}
+                                    onClick={() => setQuery("CREATE TABLE IF NOT EXISTS new_sensor (event_time TIMESTAMPTZ NOT NULL, sensor_id UUID NOT NULL REFERENCES sensors(id), measurement_data DOUBLE PRECISION, PRIMARY KEY (event_time, sensor_id));")}
                                     className="w-full py-2 px-3 text-left bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 transition-colors"
                                 >
-                                    INSERT INTO usuarios (nombre, email, role) VALUES ('Nuevo Usuario', 'nuevo@example.com', 'user');
+                                    CREATE TABLE IF NOT EXISTS new_sensor (event_time TIMESTAMPTZ NOT NULL, sensor_id UUID NOT NULL REFERENCES sensors(id), measurement_data DOUBLE PRECISION, PRIMARY KEY (event_time, sensor_id));
+
                                 </button>
                             </div>
 
