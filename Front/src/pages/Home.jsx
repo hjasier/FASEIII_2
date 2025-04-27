@@ -52,35 +52,35 @@ function Home() {
           </div>
           
           {/* User Type Selector */}
-          <div className="flex items-center space-x-4 bg-white rounded-lg p-2 border border-gray-100">
-            <span className="text-sm font-medium text-gray-700">Tipo de Usuario:</span>
-            <div className="flex space-x-2">
-              <button
-                className={`px-3 py-1 rounded-md text-sm transition-all ${
-                  userType === 'normal' 
+                <div className="flex items-center space-x-6 bg-white rounded-lg p-3 border border-gray-100">
+                <span className="text-base font-medium text-gray-700">Tipo de Usuario:</span>
+                <div className="flex space-x-3">
+                  <button
+                  className={`px-5 py-2 rounded-md text-base font-medium transition-all ${
+                    userType === 'normal' 
                     ? 'bg-[#36C78D] text-white shadow-md' 
                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-                onClick={() => handleUserTypeChange('normal')}
-              >
-                Normal
-              </button>
-              <button
-                className={`px-3 py-1 rounded-md text-sm transition-all ${
-                  userType === 'expert' 
+                  }`}
+                  onClick={() => handleUserTypeChange('normal')}
+                  >
+                  Ciudadano
+                  </button>
+                  <button
+                  className={`px-5 py-2 rounded-md text-base font-medium transition-all ${
+                    userType === 'expert' 
                     ? 'bg-[#36C78D] text-white shadow-md' 
                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-                onClick={() => handleUserTypeChange('expert')}
-              >
-                Experto
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+                  }`}
+                  onClick={() => handleUserTypeChange('expert')}
+                  >
+                  Experto
+                  </button>
+                </div>
+                </div>
+              </div>
+              </header>
 
-      {/* Hero section */}
+              {/* Hero section */}
       <section className="container mx-auto px-4 py-12 md:py-20 flex flex-col md:flex-row items-center">
         <div className="md:w-1/2 mb-8 md:mb-0 md:pr-8">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight mb-6">
@@ -161,8 +161,8 @@ function Home() {
                     <button type="button" onClick={() => setSearchQuery("¿Cuál es la calidad del aire hoy?")} className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs py-1 px-2 rounded-full">
                       ¿Calidad del aire hoy?
                     </button>
-                    <button type="button" onClick={() => setSearchQuery("¿Cuánta energía renovable se ha generado este mes?")} className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs py-1 px-2 rounded-full">
-                      ¿Energía renovable generada?
+                    <button type="button" onClick={() => setSearchQuery("¿Qué rutas de transporte tienen mayor demanda?")} className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs py-1 px-2 rounded-full">
+                      ¿Qué rutas de transporte tienen mayor demanda?
                     </button>
                   </div>
                 </form>
