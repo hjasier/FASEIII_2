@@ -34,7 +34,23 @@ def query(query):
 
     return rows
 
+def get_infrastructure_types():
+    # Query to get the infrastructure types
+    query = """
+    SELECT DISTINCT type
+    FROM infrastructure
+    WHERE type IS NOT NULL;
+    """
     
+    # Execute the query and fetch results
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    
+    # Extract the infrastructure types from the rows
+    infrastructure_types = [row[0] for row in rows]
+    
+    return infrastructure_types
+
 
 def generate_schema_summary(columns, foreign_keys):
     summary = {}
@@ -57,6 +73,13 @@ def generate_schema_summary(columns, foreign_keys):
         if info["relations"]:
             schema_description += "Relations:\n" + "\n".join(info["relations"]) + "\n"
         schema_description += "\n"
+
+    # 4. Add infrastructure types
+    infrastructure_types = get_infrastructure_types()
+    schema_description += "Infrastructure Types:\n"
+    for infra_type in infrastructure_types:
+        schema_description += f"- {infra_type}\n"
+    schema_description += "\n"
     
     return schema_description
 
