@@ -351,7 +351,7 @@ const SensorChart = ({ sensorId, sensorType, selectedCity, onCityChange, cities,
         const response = await axios.get(url)
 
         // Process data based on sensor type
-        processDataForChart(response, sensorType);
+        processDataForChart(response.data, sensorType);
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch sensor data');
