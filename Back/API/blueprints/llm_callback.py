@@ -285,7 +285,7 @@ def generate_expert():
     }]
 
     response = client.chat.completions.create(
-        model="gpt-4.1",
+        model="gpt-4-turbo",
         messages=prompt,
         temperature=0,
         tools=tools,
