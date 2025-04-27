@@ -3,16 +3,17 @@ from datetime import datetime
 from .dao import cur, conn
 from psycopg2 import sql, DatabaseError
 import os
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Create blueprint for project management
 projects_bp = Blueprint('projects', __name__)
 
 @projects_bp.route('/create', methods=['POST'])
-def create_project(current_user):
-    """
-    POST /projects/create
-    Create a new project for the authenticated user
-    """
+@jwt_required()
+def create_project():
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
+    
     # Get request data
     data = request.get_json()
     
@@ -24,9 +25,20 @@ def create_project(current_user):
         }), 400
     
     project_name = data['project_name']
-    user_id = current_user['user_id']
     
     try:
+        # First, verify the user exists in your database
+        cur.execute("SELECT user_id FROM users.user_accounts WHERE user_id = %s", (current_user_id,))
+        user_result = cur.fetchone()
+        
+        if not user_result:
+            return jsonify({
+                "status": "error",
+                "message": "User not found"
+            }), 404
+            
+        user_id = user_result[0]
+        
         # Check if a project with this name already exists for the user
         cur.execute(
             "SELECT project_id FROM users.projects WHERE user_id = %s AND project_name = %s",

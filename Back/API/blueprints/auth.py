@@ -1,96 +1,13 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-import jwt
+from flask_jwt_extended import create_access_token
 from .dao import cur, conn
 from psycopg2 import sql, DatabaseError
 import os
 
 # Create blueprint for authentication
 auth_bp = Blueprint('auth', __name__)
-
-# Get secret key from environment or use a default for development
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-secret-key')
-
-@auth_bp.route('/register', methods=['POST'])
-def register():
-    """
-    POST /api/greenlake-eval/auth/register
-    Register a new user with username and password
-    """
-    # Get request data
-    data = request.get_json()
-    
-    # Validate required fields
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({
-            "status": "error",
-            "message": "Username and password are required"
-        }), 400
-    
-    username = data['username']
-    password = data['password']
-    
-    # Validate password strength
-    if len(password) < 8:
-        return jsonify({
-            "status": "error",
-            "message": "Password must be at least 8 characters long"
-        }), 400
-    
-    # Hash the password
-    password_hash = generate_password_hash(password)
-    
-    try:
-        # Check if username already exists
-        cur.execute(
-            "SELECT username FROM users.user_accounts WHERE username = %s",
-            (username,)
-        )
-        if cur.fetchone():
-            return jsonify({
-                "status": "error",
-                "message": "Username already exists"
-            }), 409
-        
-        # Insert new user
-        cur.execute(
-            "INSERT INTO users.user_accounts (username, password_hash) VALUES (%s, %s) RETURNING user_id",
-            (username, password_hash)
-        )
-        user_id = cur.fetchone()[0]
-        
-        # Commit the transaction
-        conn.commit()
-        
-        # Generate token for immediate login
-        token = jwt.encode({
-            'user_id': user_id,
-            'username': username,
-            'exp': datetime.utcnow() + timedelta(hours=24)
-        }, SECRET_KEY, algorithm='HS256')
-        
-        return jsonify({
-            "status": "success",
-            "message": "User registered successfully",
-            "user_id": user_id,
-            "username": username,
-            "token": token
-        }), 201
-    
-    except DatabaseError as e:
-        conn.rollback()
-        return jsonify({
-            "status": "error",
-            "message": f"Database error: {str(e)}"
-        }), 500
-    
-    except Exception as e:
-        conn.rollback()
-        return jsonify({
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -128,19 +45,15 @@ def login():
         
         user_id, username, _ = user
         
-        # Generate token
-        token = jwt.encode({
-            'user_id': user_id,
-            'username': username,
-            'exp': datetime.utcnow() + timedelta(hours=24)
-        }, SECRET_KEY, algorithm='HS256')
+        # Generate token using flask_jwt_extended - CONVERT TO STRING
+        access_token = create_access_token(identity=str(user_id))
         
         return jsonify({
             "status": "success",
             "message": "Login successful",
             "user_id": user_id,
             "username": username,
-            "token": token
+            "token": access_token
         }), 200
     
     except DatabaseError as e:
@@ -150,6 +63,85 @@ def login():
         }), 500
     
     except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Error: {str(e)}"
+        }), 500
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    """
+    POST /api/greenlake-eval/auth/register
+    Register a new user and return a JWT token
+    """
+    # Get request data
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data or not data.get('username') or not data.get('password') or not data.get('email'):
+        return jsonify({
+            "status": "error",
+            "message": "Username, email, and password are required"
+        }), 400
+    
+    username = data['username']
+    email = data['email']
+    password = data['password']
+    
+    try:
+        # Check if username already exists
+        cur.execute(
+            "SELECT user_id FROM users.user_accounts WHERE username = %s",
+            (username,)
+        )
+        if cur.fetchone():
+            return jsonify({
+                "status": "error",
+                "message": "Username already taken"
+            }), 409
+        
+        # Check if email already exists
+        cur.execute(
+            "SELECT user_id FROM users.user_accounts WHERE email = %s",
+            (email,)
+        )
+        if cur.fetchone():
+            return jsonify({
+                "status": "error",
+                "message": "Email already registered"
+            }), 409
+        
+        # Hash the password
+        password_hash = generate_password_hash(password)
+        
+        # Insert new user
+        cur.execute(
+            "INSERT INTO users.user_accounts (username, email, password_hash) VALUES (%s, %s, %s) RETURNING user_id",
+            (username, email, password_hash)
+        )
+        user_id = cur.fetchone()[0]
+        conn.commit()
+        
+        # Generate token using flask_jwt_extended - CONVERT TO STRING
+        access_token = create_access_token(identity=str(user_id))
+        
+        return jsonify({
+            "status": "success",
+            "message": "Registration successful",
+            "user_id": user_id,
+            "username": username,
+            "token": access_token
+        }), 201
+    
+    except DatabaseError as e:
+        conn.rollback()
+        return jsonify({
+            "status": "error",
+            "message": f"Database error: {str(e)}"
+        }), 500
+    
+    except Exception as e:
+        conn.rollback()
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
