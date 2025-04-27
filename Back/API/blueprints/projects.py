@@ -2,14 +2,12 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from .dao import cur, conn
 from psycopg2 import sql, DatabaseError
-from .auth_middleware import token_required
 import os
 
 # Create blueprint for project management
 projects_bp = Blueprint('projects', __name__)
 
 @projects_bp.route('/create', methods=['POST'])
-@token_required
 def create_project(current_user):
     """
     POST /projects/create
@@ -82,7 +80,6 @@ def create_project(current_user):
         }), 500
 
 @projects_bp.route('/add_tables', methods=['POST'])
-@token_required
 def add_tables_to_project(current_user):
     """
     POST /projects/add_tables
@@ -167,7 +164,6 @@ def add_tables_to_project(current_user):
         }), 500
 
 @projects_bp.route('/tables/<int:project_id>', methods=['GET'])
-@token_required
 def get_project_tables(current_user, project_id):
     """
     GET /projects/tables/{project_id}
@@ -218,7 +214,6 @@ def get_project_tables(current_user, project_id):
         }), 500
 
 @projects_bp.route('/list', methods=['GET'])
-@token_required
 def list_user_projects(current_user):
     """
     GET /projects/list
@@ -253,7 +248,6 @@ def list_user_projects(current_user):
         }), 500
 
 @projects_bp.route('/delete/<int:project_id>', methods=['DELETE'])
-@token_required
 def delete_project(current_user, project_id):
     """
     DELETE /projects/delete/{project_id}
@@ -306,7 +300,6 @@ def delete_project(current_user, project_id):
         }), 500
 
 @projects_bp.route('/remove_table', methods=['POST'])
-@token_required
 def remove_table_from_project(current_user):
     """
     POST /projects/remove_table
