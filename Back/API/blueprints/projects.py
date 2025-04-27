@@ -25,6 +25,8 @@ def create_project():
         }), 400
     
     project_name = data['project_name']
+    project_description = data.get('description', '')  # Get description, default to empty string
+    tables = data.get('tables', [])  # Get tables list
     
     try:
         # First, verify the user exists in your database
@@ -47,36 +49,31 @@ def create_project():
         if cur.fetchone():
             return jsonify({
                 "status": "error",
-                "message": f"A project named '{project_name}' already exists for this user"
+                "message": "A project with this name already exists"
             }), 409
         
-        # Create new project
+        # Create new project with description
         cur.execute(
-            "INSERT INTO users.projects (user_id, project_name) VALUES (%s, %s) RETURNING project_id",
-            (user_id, project_name)
+            "INSERT INTO users.projects (user_id, project_name, description) VALUES (%s, %s, %s) RETURNING project_id",
+            (user_id, project_name, project_description)
         )
         project_id = cur.fetchone()[0]
         
-        # Add tables to the project if provided
-        tables = data.get('tables', [])
-        if tables:
-            for table_name in tables:
-                cur.execute(
-                    "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
-                    (project_id, table_name)
-                )
+        # Add tables to the project
+        for table_name in tables:
+            cur.execute(
+                "INSERT INTO users.project_tables (project_id, table_name) VALUES (%s, %s)",
+                (project_id, table_name)
+            )
         
-        # Commit the transaction
         conn.commit()
         
         return jsonify({
             "status": "success",
             "message": "Project created successfully",
-            "project_id": project_id,
-            "project_name": project_name,
-            "tables_added": len(tables)
+            "project_id": project_id
         }), 201
-    
+        
     except DatabaseError as e:
         conn.rollback()
         return jsonify({
