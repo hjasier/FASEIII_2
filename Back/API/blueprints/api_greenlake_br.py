@@ -1,15 +1,20 @@
+import logging
 from flask import Flask, request, jsonify, render_template
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from .dao import cur
+import requests
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/greenlake-eval')
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @api_bp.route('/test', methods=['GET'])
 def test1():
     cur.execute("SELECT now();")
     timestamp = cur.fetchone()
-    status = "running"
+    status = "active"
     return jsonify({
         "metadata": {
             "status": "success",
@@ -175,7 +180,7 @@ def events_nearby():
         },
         "results": results
     })
-    
+
 @api_bp.route('/ask', methods=['POST'])
 def ask_chatbot():
     data = request.get_json(force=True)
@@ -191,11 +196,34 @@ def ask_chatbot():
             "error": "Falta el campo 'question' en el cuerpo de la petición"
         }), 400
 
-    # Por ahora devolvemos la respuesta de ejemplo sin lógica real
-    example_answer = (
-        "La canción más escuchada de GreenLake City es "
-        "'Sam Smith;Kim Petras Unholy (feat. Kim Petras)'"
-    )
+    try:
+        llm_response = requests.post(
+            'http://localhost:5454/generate',
+            json={'question': question},
+            timeout=30  # Timeout after 30 seconds
+        )
+        
+        # Check if request was successful
+        if llm_response.status_code == 200:
+            message = llm_response.json().get('message', 'No message provided')
+            image = llm_response.json().get('image', None)
+            logger.info(f"LLM response: {llm_response.json()}")
+        else:
+            return jsonify({
+                "metadata": {
+                    "status": "error",
+                    "timestamp": datetime.now().isoformat() + "Z"
+                },
+                "error": f"LLM service returned status code {llm_response.status_code}"
+            }), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            "metadata": {
+                "status": "error",
+                "timestamp": datetime.now().isoformat() + "Z"
+            },
+            "error": f"Failed to connect to LLM service: {str(e)}"
+        }), 500
 
     return jsonify({
         
@@ -204,7 +232,8 @@ def ask_chatbot():
             "timestamp": datetime.now().isoformat() + "Z"
         },
         "results": {
-            "answer": example_answer
+            "message": message,
+            "image": image
         }
     })
     

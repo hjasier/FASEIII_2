@@ -173,18 +173,20 @@ def add_tables_to_project(current_user):
         }), 500
 
 @projects_bp.route('/tables/<int:project_id>', methods=['GET'])
-def get_project_tables(current_user, project_id):
+@jwt_required()
+def get_project_tables(project_id):
     """
     GET /projects/tables/{project_id}
     Get all tables in a project
     """
-    user_id = current_user['user_id']
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
     
     try:
         # Check if the project exists and belongs to the user
         cur.execute(
             "SELECT project_name FROM users.projects WHERE project_id = %s AND user_id = %s",
-            (project_id, user_id)
+            (project_id, current_user_id)
         )
         project = cur.fetchone()
         
@@ -223,27 +225,47 @@ def get_project_tables(current_user, project_id):
         }), 500
 
 @projects_bp.route('/list', methods=['GET'])
-def list_user_projects(current_user):
+@jwt_required()
+def list_user_projects():
     """
     GET /projects/list
     List all projects for the authenticated user
     """
-    user_id = current_user['user_id']
+    # Get user identity from JWT token
+    current_user_id = get_jwt_identity()
     
     try:
-        # Get all projects for the user
+        # Get all projects for the user with additional details
         cur.execute(
-            "SELECT project_id, project_name FROM users.projects WHERE user_id = %s",
-            (user_id,)
+            """
+            SELECT p.project_id, p.project_name, p.description, 
+                   COUNT(pt.table_name) as table_count,
+                   p.created_at
+            FROM users.projects p
+            LEFT JOIN users.project_tables pt ON p.project_id = pt.project_id
+            WHERE p.user_id = %s
+            GROUP BY p.project_id, p.project_name, p.description, p.created_at
+            """,
+            (current_user_id,)
         )
-        projects = [{"project_id": row[0], "project_name": row[1]} for row in cur.fetchall()]
+        
+        projects = []
+        for row in cur.fetchall():
+            project = {
+                "id": row[0],
+                "name": row[1],
+                "description": row[2] or "",  # Handle null descriptions
+                "table_count": row[3],
+                "createdAt": row[4].strftime("%Y-%m-%d") if row[4] else None
+            }
+            projects.append(project)
         
         return jsonify({
             "status": "success",
-            "user_id": user_id,
+            "user_id": current_user_id,
             "projects": projects
         }), 200
-    
+        
     except DatabaseError as e:
         return jsonify({
             "status": "error",

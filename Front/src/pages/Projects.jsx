@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 function Projects() {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
   const [showCreateVisualization, setShowCreateVisualization] = useState(false);
   const [visualizationType, setVisualizationType] = useState('bar');
@@ -12,52 +13,120 @@ function Projects() {
   
   const navigate = useNavigate();
 
-  // Mock projects data - replace with actual API call
+  // Fetch projects from API
   useEffect(() => {
-    // Simulating API fetch
-    setTimeout(() => {
-      const mockProjects = [
-        { 
-          id: 1, 
-          name: 'Análisis de Salud', 
-          description: 'Estadísticas de salud en GreenLake',
-          createdAt: '2025-04-20',
-          tables: [
-            { id: 1, name: 'Hospitales', category: 'salud' },
-            { id: 4, name: 'Emergencias Médicas', category: 'salud' }
-          ],
-          visualizations: [
-            { id: 1, title: 'Hospitales por zona', type: 'pie', createdAt: '2025-04-21' },
-            { id: 2, title: 'Emergencias por mes', type: 'line', createdAt: '2025-04-22' }
-          ]
-        },
-        { 
-          id: 2, 
-          name: 'Educación Pública', 
-          description: 'Estadísticas de centros educativos públicos',
-          createdAt: '2025-04-15',
-          tables: [
-            { id: 2, name: 'Escuelas', category: 'educación' }
-          ],
-          visualizations: [
-            { id: 3, title: 'Escuelas por nivel educativo', type: 'bar', createdAt: '2025-04-16' }
-          ]
-        },
-        { 
-          id: 3, 
-          name: 'Seguridad Urbana', 
-          description: 'Análisis de seguridad en diferentes zonas',
-          createdAt: '2025-04-10',
-          tables: [
-            { id: 5, name: 'Delitos', category: 'seguridad' }
-          ],
-          visualizations: []
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Get auth token
+        const authToken = localStorage.getItem('authToken');
+        
+        if (!authToken) {
+          // Redirect to login if no auth token
+          navigate('/login-user', { state: { returnUrl: '/projects' } });
+          return;
         }
-      ];
-      setProjects(mockProjects);
-      setIsLoading(false);
-    }, 800);
-  }, []);
+        
+        const response = await fetch('http://127.0.0.1:5454/projects/list', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+          // Format projects with needed properties
+          const formattedProjects = data.projects.map(project => ({
+            id: project.id,
+            name: project.name,
+            description: project.description || "Sin descripción",
+            createdAt: project.createdAt || "N/A",
+            tables: [], // Will be populated when project is clicked
+            tableCount: project.table_count,
+            visualizations: [] // We'll add mock visualizations for now
+          }));
+          
+          setProjects(formattedProjects);
+        } else {
+          throw new Error(data.message || 'Failed to fetch projects');
+        }
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProjects();
+  }, [navigate]);
+
+  // Function to fetch tables for a project when it's selected
+  const fetchProjectTables = async (projectId) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      if (!authToken) return;
+      
+      const response = await fetch(`http://127.0.0.1:5454/projects/tables/${projectId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch project tables');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        // Update the specific project with its tables
+        setProjects(prevProjects => 
+          prevProjects.map(project => 
+            project.id === projectId 
+              ? { 
+                  ...project, 
+                  tables: data.tables.map((tableName, index) => ({
+                    id: index + 1,
+                    name: tableName,
+                    category: 'datos' // Default category
+                  }))
+                }
+              : project
+          )
+        );
+        
+        // Also update activeProject if it's currently selected
+        if (activeProject && activeProject.id === projectId) {
+          const updatedProject = projects.find(p => p.id === projectId);
+          if (updatedProject) {
+            setActiveProject({
+              ...updatedProject,
+              tables: data.tables.map((tableName, index) => ({
+                id: index + 1,
+                name: tableName,
+                category: 'datos' // Default category
+              }))
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching project tables:', error);
+    }
+  };
 
   const handleBack = () => {
     if (activeProject) {
@@ -79,6 +148,10 @@ function Projects() {
   const handleViewProjectDetails = (project) => {
     // Use this for viewing project details without the canvas
     setActiveProject(project);
+    // Fetch tables for the project if not already loaded
+    if (project.tables.length === 0) {
+      fetchProjectTables(project.id);
+    }
   };
 
   const handleCreateVisualization = () => {
@@ -105,7 +178,7 @@ function Projects() {
 
     const updatedProject = {
       ...activeProject,
-      visualizations: [...activeProject.visualizations, newVisualization]
+      visualizations: [...(activeProject.visualizations || []), newVisualization]
     };
 
     setProjects(projects.map(p => 
@@ -157,7 +230,7 @@ function Projects() {
     };
     
     return activeProject.tables.flatMap(table => 
-      (mockColumns[table.name] || []).map(col => ({
+      (mockColumns[table.name] || ['id', 'nombre']).map(col => ({
         id: `${table.name.toLowerCase().replace(/\s/g, '_')}.${col}`,
         table: table.name,
         column: col
@@ -313,6 +386,19 @@ function Projects() {
             <div className="animate-spin inline-block w-8 h-8 border-4 border-[#36C78D] border-t-transparent rounded-full mb-2"></div>
             <p className="text-gray-600">Cargando proyectos...</p>
           </div>
+        ) : error ? (
+          <div className="text-center py-8 bg-white rounded-lg shadow-sm border border-red-100">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-gray-800 mb-2">Error al cargar proyectos: {error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 bg-[#36C78D] text-white rounded-md hover:bg-[#2da677]"
+            >
+              Reintentar
+            </button>
+          </div>
         ) : activeProject ? (
           <div>
             {/* Project Details */}
@@ -326,11 +412,15 @@ function Projects() {
               <div className="mb-4">
                 <h3 className="text-md font-medium text-gray-900">Tablas en este proyecto</h3>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {activeProject.tables.map(table => (
-                    <span key={table.id} className="px-3 py-1 bg-green-50 text-[#36C78D] text-xs rounded-full">
-                      {table.name} <span className="text-green-600">({table.category})</span>
-                    </span>
-                  ))}
+                  {activeProject.tables && activeProject.tables.length > 0 ? (
+                    activeProject.tables.map(table => (
+                      <span key={table.id} className="px-3 py-1 bg-green-50 text-[#36C78D] text-xs rounded-full">
+                        {table.name} {table.category && <span className="text-green-600">({table.category})</span>}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-500">Cargando tablas...</span>
+                  )}
                 </div>
               </div>
               
@@ -351,7 +441,7 @@ function Projects() {
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Visualizaciones</h2>
               
-              {activeProject.visualizations.length === 0 ? (
+              {!activeProject.visualizations || activeProject.visualizations.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
@@ -392,7 +482,7 @@ function Projects() {
         ) : projects.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-lg shadow-sm border border-gray-100">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-[#36C78D] opacity-70 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V6z" />
             </svg>
             <p className="text-gray-600 mb-2 text-lg">No tiene proyectos creados.</p>
             <p className="text-gray-500 mb-6">Cree un nuevo proyecto para empezar a analizar datos.</p>
@@ -417,16 +507,16 @@ function Projects() {
                   
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                     <span>Creado: {project.createdAt}</span>
-                    <span>{project.tables.length} tablas</span>
+                    <span>{project.tableCount || 0} tablas</span>
                   </div>
                   
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {project.tables.slice(0, 3).map(table => (
+                    {project.tables && project.tables.slice(0, 3).map(table => (
                       <span key={table.id} className="px-2 py-1 bg-green-50 text-green-800 text-xs rounded">
                         {table.name}
                       </span>
                     ))}
-                    {project.tables.length > 3 && (
+                    {project.tables && project.tables.length > 3 && (
                       <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
                         +{project.tables.length - 3} más
                       </span>
@@ -439,7 +529,7 @@ function Projects() {
                         <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
                         <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
                       </svg>
-                      <span className="text-sm text-gray-600">{project.visualizations.length} visualizaciones</span>
+                      <span className="text-sm text-gray-600">{project.visualizations?.length || 0} visualizaciones</span>
                     </div>
                     
                     <div className="flex space-x-2">

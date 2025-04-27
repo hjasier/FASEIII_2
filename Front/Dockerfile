@@ -1,19 +1,24 @@
-# Dockerfile para React
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar el package.json y el package-lock.json
+# Copy package files and install dependencies
 COPY package*.json ./
-
-# Instalar las dependencias
 RUN npm install
 
-# Copiar el resto de los archivos
+# Install serve package
+RUN npm install -g serve
+
+# Copy source code
 COPY . .
 
-# Exponer el puerto donde la app de React va a correr
+# Build with the environment variable
+ARG VITE_API_URL=http://10.10.76.241:5454
+ENV VITE_API_URL=${VITE_API_URL}
+
+RUN npm run build
+
 EXPOSE 5173
 
-# Comando para ejecutar el frontend
-CMD ["npm", "run", "dev"]
+# Use serve to host the static files
+CMD ["serve", "-s", "dist", "-l", "5173"]

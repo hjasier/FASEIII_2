@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SensorChart from '../components/SensorChart';
 import { Link } from 'react-router-dom';
+import { apiService } from '../services/api';
 
 const SensorDashboard = () => {
   const [cities, setCities] = useState([]);
@@ -19,19 +20,63 @@ const SensorDashboard = () => {
     { id: 'traffic', name: 'Monitoreo de Tráfico' }
   ];
 
+  // Add this function to fetch cities in your Dashboard component where cities are loaded
+  const fetchCities = async () => {
+    try {
+      const data = await apiService.get('/api/greenlake-eval/sensors/cities');
+      console.log('Cities data:', data);
+      
+      // Check the structure of the data to handle properly
+      let citiesList = [];
+      
+      if (Array.isArray(data)) {
+        // If data is already an array of cities
+        citiesList = data;
+      } else if (data && Array.isArray(data.cities)) {
+        // If cities are in a property called 'cities'
+        citiesList = data.cities;
+      } else if (data && Array.isArray(data.results)) {
+        // If cities are in a property called 'results'
+        citiesList = data.results;
+      } else {
+        console.error('Unexpected cities data format:', data);
+        citiesList = [];
+      }
+      
+      // Parse city names depending on the format
+      const cityNames = citiesList.map(city => {
+        // Handle if city is a string
+        if (typeof city === 'string') {
+          return city;
+        }
+        // Handle if city is an array like ["Barcelona"]
+        else if (Array.isArray(city)) {
+          return city[0];
+        }
+        // Handle if city is an object with a name property
+        else if (city && typeof city === 'object') {
+          return city.name || city.city_name || city.city || Object.values(city)[0];
+        }
+        return 'Unknown';
+      });
+      
+      setCities(cityNames);
+    } catch (error) {
+      console.error('Failed to fetch cities:', error);
+      setCities([]);
+    }
+  };
+
   // Fetch the list of cities
   useEffect(() => {
-    const fetchCities = async () => {
+    const fetchInitialCities = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
-        // API returns cities as an array of arrays like [["City1"], ["City2"]]
-        const cityNames = response.data.map(city => city[0]);
-        setCities(cityNames);
+        await fetchCities();
         
         // Set the first city as default
-        if (cityNames.length > 0) {
-          setSelectedCity(cityNames[0]);
+        if (cities.length > 0) {
+          setSelectedCity(cities[0]);
         }
         setLoading(false);
       } catch (err) {
@@ -43,7 +88,7 @@ const SensorDashboard = () => {
       }
     };
     
-    fetchCities();
+    fetchInitialCities();
   }, []);
 
   // Handle city selection change

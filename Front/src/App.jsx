@@ -8,7 +8,6 @@ import Tables from './pages/Tables';
 import Projects from './pages/Projects';
 import Project from './pages/Project';
 import SensorDashboard from './pages/SensorDashboard';
-import Realtime from './pages/Realtime';
 import LLMChat from './pages/LLMChat';
 import Admin from './pages/Admin';
 import CSVUpload from './pages/CSVUpload';
@@ -67,11 +66,6 @@ function App() {
           }
         />
 
-        <Route path="/realtime"
-          element={
-            <Realtime />
-          }
-        />
 
         {/* Admin route with protection */}
         <Route path="/admin"
