@@ -138,16 +138,33 @@ def get_city_id(sensor_id):
     
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT city_id FROM sensors WHERE id = %s", (sensor_id,))
+        # First check if sensor has direct city_id
+        cursor.execute("SELECT city_id, road_id FROM sensors WHERE id = %s", (sensor_id,))
         result = cursor.fetchone()
         
-        if result:
-            city_id = result[0]
-            # Only cache valid city_ids
-            if city_id is not None:
-                message_store.cache_city(sensor_id, city_id)
+        if not result:
+            logger.warning(f"No sensor found with id {sensor_id}")
+            return None
+            
+        city_id, road_id = result
+        
+        # If city_id is directly available, use it
+        if city_id is not None:
+            message_store.cache_city(sensor_id, city_id)
             return city_id
-        #logger.warning(f"No city_id found for sensor {sensor_id}")
+        
+        # If no city_id but has road_id, get origin_city_id from roads table
+        if road_id is not None:
+            cursor.execute("SELECT origin_city_id FROM roads WHERE id = %s", (road_id,))
+            road_result = cursor.fetchone()
+            
+            if road_result and road_result[0] is not None:
+                city_id = road_result[0]
+                # Cache and return the city_id from the road's origin city
+                message_store.cache_city(sensor_id, city_id)
+                return city_id
+            
+        logger.warning(f"No city_id found for sensor {sensor_id} (neither direct nor via road)")
         return None
     except Exception as e:
         logger.error(f"Database query error when getting city_id for sensor {sensor_id}: {e}")
