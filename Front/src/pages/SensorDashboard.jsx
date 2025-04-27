@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SensorChart from '../components/SensorChart';
 import { Link } from 'react-router-dom';
-import { apiService } from '../services/api';
 
 const SensorDashboard = () => {
   const [cities, setCities] = useState([]);
@@ -23,7 +22,7 @@ const SensorDashboard = () => {
   // Add this function to fetch cities in your Dashboard component where cities are loaded
   const fetchCities = async () => {
     try {
-      const data = await apiService.get('/api/greenlake-eval/sensors/cities');
+      const data = await axios.get('http://localhost:5454/api/greenlake-eval/sensors/cities');
       console.log('Cities data:', data);
       
       // Check the structure of the data to handle properly
@@ -39,7 +38,9 @@ const SensorDashboard = () => {
         // If cities are in a property called 'results'
         citiesList = data.results;
       } else {
+        console.log("potato")
         console.error('Unexpected cities data format:', data);
+        console.log(data)
         citiesList = [];
       }
       

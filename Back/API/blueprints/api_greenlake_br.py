@@ -198,7 +198,7 @@ def ask_chatbot():
 
     try:
         llm_response = requests.post(
-            'http://localhost:5454/generate',
+            'http://10.10.76.241:5454/generate',
             json={'question': question},
             timeout=30  # Timeout after 30 seconds
         )

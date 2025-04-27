@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { apiService } from '../services/api';
 
 function CSVUpload() {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -17,7 +16,7 @@ function CSVUpload() {
     useEffect(() => {
         const fetchTables = async () => {
             try {
-                const response = apiService.get('/tables');
+                const response = await axios.get('/tables');
                 if (response.data) {
                     const response_tables = response.data.results.map((row) => row.table);
                     console.log('Tables:', response_tables);
@@ -75,7 +74,7 @@ function CSVUpload() {
         setSuccess(null);
 
         try {
-            const response = await apiService.post('/upload_csv', formData);
+            const response = await axios.post('http://localhost:5454/upload_csv', formData);
 
             console.log('Upload response:', response.data);
             setSuccess(`Archivo CSV cargado exitosamente a la tabla ${selectedTable}. Registros procesados: ${response.data.rows_inserted || 'N/A'}`);

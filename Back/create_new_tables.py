@@ -47,7 +47,7 @@ def insert_coches(api_url: str, sql_path: str):
             print(f"  ❌ Error en la query: {data.get('message')}")
 
 if __name__ == "__main__":
-    #API_URL  = "http://localhost:5454"  # tu servidor Flask
+    #API_URL  = "http://10.10.76.241:5454"  # tu servidor Flask
 
     #insert_coches(API_URL, "coches.sql")
     #insert_coches(API_URL, "people.sql")

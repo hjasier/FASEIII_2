@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { marked } from 'marked';
 import ReactMarkdown from 'react-markdown'; // Import the library
-import { apiService } from '../services/api';
 
 
 function LLMChat() {
@@ -88,12 +87,12 @@ function LLMChat() {
     setIsLoading(true);
     
     try {
-      const response = await apiService.post('/generate', {
+      const response = await fetch('http://127.0.0.1:5454/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ question })
+        body: {'question':question}
       });
       
       if (!response.ok) {
@@ -122,7 +121,7 @@ function LLMChat() {
       // Update the streaming part in your fetchAnswerFromAPI function
 
       if (data.graph_base64) {
-        const response = await apiService.post('/explain-image', {
+        const response = await fetch('http://127.0.0.1:5454/explain-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../services/api';
 
 function Tables() {
   const [tables, setTables] = useState([]);
@@ -27,7 +26,11 @@ function Tables() {
     const fetchTables = async () => {
       try {
         setIsLoading(true);
-        const data = await apiService.get('/tables');
+        const response = await fetch('http://localhost:5454/projects/create', {
+          method: 'GET'
+        });
+  
+        const data = await response.json();
         console.log('Tables data received:', data);
         
         if (data && data.results) {
@@ -125,7 +128,7 @@ function Tables() {
 
     try {
       // API call to create a project
-      const response = await fetch('http://127.0.0.1:5454/projects/create', {
+      const response = await fetch('http://10.10.76.241:5454/projects/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,11 +171,15 @@ function Tables() {
     console.log(`Tables to download as ${type}:`, selectedNames);
 
     try {
-      // Use axios-based post method, data is provided as an object directly
-      const response = await apiService.post('/export', {
-        tables: selectedNames,
-        type: type
-      });
+      const response = await fetch("http://127.0.0.1:5454/export",{
+        method: "POST",
+        headers: {
+          "-content-Type" : "application/json",
+          body: JSON.stringify({
+            tables: selectedNames,
+            type: type})
+        }
+      })
 
       // Create and download the file
       const blob = new Blob([response.data], { type: 'application/zip' });
@@ -207,7 +214,8 @@ function Tables() {
     try {
       // Fetch columns for the selected table from the API
       // With Axios, the response is already parsed to JSON
-      const data = await apiService.get(`/columns/${tableName}`);
+      const response = await fetch.get(`127.0.0.1:5454/columns/${tableName}`);
+      const data = await response.json()
 
       if (data && data.metadata && data.metadata.status === 'success') {
         // Log the retrieved column data to the console for debugging
