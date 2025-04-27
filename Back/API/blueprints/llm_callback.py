@@ -133,8 +133,8 @@ def generate():
     user_question = request.json.get('question')
 
     prompt = [
-    {"role": "system", "content": f"Eres un asistente que genera queries SQL basadas en el schema: {table_schema}"},
-    {"role": "user", "content": user_question}
+        {"role": "system", "content": f"Eres un asistente que genera queries SQL que se ejecutan basadas en el schema: {table_schema}. Las queries SQL generadas deben ser correctas y ejecutables. No expliques nada, solo genera el código SQL."},
+        {"role": "user", "content": user_question}
     ]
 
 
@@ -167,8 +167,8 @@ def generate():
     prompt.append(UserMessage(
         f"Ejemplo de los datos: {muestra_db_data}. "
         f"El conjunto completo contiene {num_registros} registros similares. "
-        f"Si corresponde, genera un gráfico usando las herramientas disponibles. "
-        f"Además, siempre explica en texto qué muestra el gráfico o los datos, para ayudar al usuario a entenderlos. Usa markdown para formatear la respuesta."
+        f"Si es conveniente, genera un gráfico usando las herramientas disponibles. No grafiques datos únicos o cuya grafica no tenga sentido. Cuando no sea conveniente el gráfico, NO expliques por qué no has hecho un gráfico y responde con un mensaje claro y conciso."
+        f"Además, cuando sea ligeramente complejo, explica en texto qué muestra el gráfico o los datos, para ayudar al usuario con pocos conocimientos a entenderlos, pero sin ser redundante ni infantil. Usa markdown para formatear la respuesta."
     ))
     
     
