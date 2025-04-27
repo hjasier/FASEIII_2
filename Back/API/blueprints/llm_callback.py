@@ -31,12 +31,13 @@ connection = psycopg2.connect(
 cursor = connection.cursor()
 
 # Azure OpenAI Setup
-endpoint = "https://models.github.ai/inference"
-model = "openai/gpt-4.1"
-token = "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"
 
-client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(token))
+model = "gpt-4.1"
+token = "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"
 
+client = OpenAI(
+        api_key=token
+    )
 
 
 def query(sql_query):
@@ -94,10 +95,7 @@ def generar_grafico(tipo_grafico, x, y, titulo="Gráfico"):
 
 
 def process_image_stream(base64, initial_prompt):
-    client = OpenAI(
-        base_url="https://models.inference.ai.azure.com",
-        api_key=token,
-    )
+    
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{
@@ -126,13 +124,18 @@ def generate():
     user_question = request.json.get('question')
 
     prompt = [
-        SystemMessage(f"Eres un asistente que genera queries SQL basadas en el schema: {table_schema}"),
-        UserMessage(user_question)
+    {"role": "system", "content": f"Eres un asistente que genera queries SQL basadas en el schema: {table_schema}"},
+    {"role": "user", "content": user_question}
     ]
-    
-    
 
-    response = client.complete(messages=prompt, temperature=0, top_p=1, model=model)
+
+    response = client.chat.completions.create(
+    model="gpt-4-turbo",  # o el que uses
+    messages=prompt,
+    temperature=0,
+    top_p=1
+    )
+
     response_message = response.choices[0].message.content
 
     
@@ -177,7 +180,13 @@ def generate():
         }
     }]
 
-    response = client.complete(messages=prompt, tools=tools, temperature=0, top_p=1, model=model)
+    response = client.chat.completions.create(
+        model=model,
+        messages=prompt,
+        tools=tools,
+        temperature=0,
+        top_p=1
+    )
     message = response.choices[0].message
 
     if hasattr(message, "tool_calls") and message.tool_calls:
