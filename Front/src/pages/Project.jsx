@@ -1,4 +1,4 @@
-// First, install Recharts:
+    // First, install Recharts:
     // npm install recharts
 
     import React, { useState, useEffect, useCallback, useRef, useReducer } from 'react';
@@ -14,7 +14,6 @@
     import 'reactflow/dist/style.css';
     import TableNode from '../components/TableNode';
     import ChartNode from '../components/ChartNode';
-import {apiService} from '../services/api';
     import ChatBox from '../components/ChatBox';
 
     // Node types
@@ -179,12 +178,12 @@ import {apiService} from '../services/api';
 
             // Fetch column data for each table
             const tablesWithColumns = [];
-
+            
             for (let i = 0; i < tableNames.length; i++) {
               const tableName = tableNames[i];
               try {
-                // With Axios, data is already parsed - no need for response.json()
-                const data = await apiService.get(`/columns/${tableName}`);
+                const response = await fetch(`http://127.0.0.1:5454/columns/${tableName}`);
+                const data = await response.json();
                 
                 if (data.metadata.status === 'success') {
                   // Transform the API response to our table format
@@ -254,7 +253,7 @@ import {apiService} from '../services/api';
       // Function to fetch data for a specific table
       const fetchTableData = async (tableName) => {
         try {
-          const response = await apiService.post('/export', {
+          const response = await fetch('http://127.0.0.1:5454/export', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -297,7 +296,7 @@ import {apiService} from '../services/api';
         setShowResultPreview(false);
       
         try {
-          const resp = await apiService.post('/expert_query', {
+          const resp = await fetch('http://127.0.0.1:5454/expert_query', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
