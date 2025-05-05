@@ -37,4 +37,7 @@ docker-compose up
 ![postspark_export_2025-04-27_12-07-33](https://github.com/user-attachments/assets/6da29a59-cf5e-4de5-abab-2382741c677c)
 
 
+![1000038591](https://github.com/user-attachments/assets/745a94cd-6628-468f-a495-926b172fe67e)
+![1000038597~2](https://github.com/user-attachments/assets/9a5b7b47-d1bd-4891-8f05-3e4753b5b4ec)
+![1000038595](https://github.com/user-attachments/assets/181ce215-099a-48dd-b4b6-13cf909770f6)
 
