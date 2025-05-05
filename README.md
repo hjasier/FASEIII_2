@@ -1,5 +1,5 @@
 
-#Contexto
+# Contexto del HPETechChallenge 2025
 Este repositorio corresponde a la **fase final del [HPE CDS Tech Challenge 2025](https://cdstechchallenge.com/)**., una competición tecnológica organizada por **Hewlett Packard Enterprise**. La competición se desarrolló a lo largo de 6 meses, durante los cuales se nos plantearon múltiples retos relacionados con el análisis y tratamiento de datos.
 
 De los más de 300 estudiantes y 75 equipos participantes, solo 5 equipos avanzaron a la tercera fase , tras superar rigurosas pruebas en las fases anteriores. Esta última fase consistió en un hackathon de 25 horas de programación ininterrumpida, donde desarrollamos la solución presentada en este repositorio.
